@@ -1,8 +1,9 @@
 # 🔋 Inverter Hybrid Card cho Home Assistant
 
 Thẻ Lovelace tùy chỉnh hiển thị sơ đồ luồng năng lượng và thống kê cho hệ thống Biến tần Hybrid (Solar / Battery / Grid / Load / EPS) trong Home Assistant.
+<img width="1217" height="1252" alt="2" src="https://github.com/user-attachments/assets/e24904e8-f9b2-4841-b4ff-155872cd3c4a" />
+<img width="1302" height="1316" alt="1" src="https://github.com/user-attachments/assets/42a08d67-049a-418a-8fd4-5a099f30e002" />
 
----
 
 ## ⚙️ Cài đặt qua HACS (Custom Repository)
 
