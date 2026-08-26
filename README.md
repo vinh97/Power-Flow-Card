@@ -3,6 +3,9 @@
 Thẻ Lovelace tùy chỉnh hiển thị sơ đồ luồng năng lượng và thống kê cho hệ thống Biến tần Hybrid (Solar / Battery / Grid / Load / EPS) trong Home Assistant.
 
 ---
+<img width="1217" height="1252" alt="2" src="https://github.com/user-attachments/assets/1e4f9cc6-70ed-4853-9152-9ca314d65da5" />
+<img width="1302" height="1316" alt="1" src="https://github.com/user-attachments/assets/e48420a7-8163-4c77-8d9e-46639c56431e" />
+
 
 ## ⚙️ Cài đặt qua HACS (Custom Repository)
 
