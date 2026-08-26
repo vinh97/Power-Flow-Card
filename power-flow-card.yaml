@@ -1,15 +1,19 @@
 type: custom:power-flow-card
-always_show_ac_pv: false # PV Hòa Lưới / Máy phát: true = luôn hiện, false = tự ẩn khi 0W
+always_show_ac_pv: false # PV Hòa Lưới / Máy phát: true = luôn hiện, false = tự ẩn
 invert_battery_power: false # Bật 'true' nếu công suất Pin bị ngược dấu (xả ra số dương, sạc vào số âm)
 invert_grid_power: false # Bật 'true' nếu công suất Lưới bị ngược dấu (mua lưới ra số âm, bán lưới ra số dương)
 entities:
-  # --- Quang điện (PV) ---
+  # PV (Quang điện) - Tự động ẩn nếu sensor không khả dụng hoặc công suất/điện áp = 0
   pv1_power: sensor.pv1_power
   pv1_voltage: sensor.pv1_voltage
   pv2_power: sensor.pv2_power
   pv2_voltage: sensor.pv2_voltage
+  pv3_power: sensor.pv3_power
+  pv3_voltage: sensor.pv3_voltage
+  pv4_power: sensor.pv4_power
+  pv4_voltage: sensor.pv4_voltage
 
-  # PV Hòa Lưới / Máy phát (Tùy chọn - Không khai báo dòng nào sẽ tự động ẩn dòng đó)  
+  # PV Hòa Lưới / Máy phát (- Tự động ẩn nếu sensor không khả dụng hoặc công suất/điện áp = 0)  
   ac_pv_power: sensor.ac_pv_power
   ac_pv_voltage: sensor.ac_pv_voltage
   ac_pv_frequency: sensor.ac_pv_frequency
