@@ -1,0 +1,51 @@
+type: custom:power-flow-card
+always_show_ac_pv: false # PV Hòa Lưới / Máy phát: true = luôn hiện, false = tự ẩn khi 0W
+invert_battery_power: false # Bật 'true' nếu công suất Pin bị ngược dấu (xả ra số dương, sạc vào số âm)
+invert_grid_power: false # Bật 'true' nếu công suất Lưới bị ngược dấu (mua lưới ra số âm, bán lưới ra số dương)
+entities:
+  # --- Quang điện (PV) ---
+  pv1_power: sensor.pv1_power
+  pv1_voltage: sensor.pv1_voltage
+  pv2_power: sensor.pv2_power
+  pv2_voltage: sensor.pv2_voltage
+
+  # PV Hòa Lưới / Máy phát (Tùy chọn - Không khai báo dòng nào sẽ tự động ẩn dòng đó)  
+  ac_pv_power: sensor.ac_pv_power
+  ac_pv_voltage: sensor.ac_pv_voltage
+  ac_pv_frequency: sensor.ac_pv_frequency
+
+  # --- Tải tiêu thụ & Dự phòng (EPS) ---
+  load_power: sensor.load_power
+  eps_power: sensor.eps_power
+  eps_voltage: sensor.eps_voltage
+  eps_frequency: sensor.eps_frequency
+
+  # --- Pin lưu trữ (Battery) ---
+  battery_power: sensor.lux_battery_flow_live
+  battery_voltage: sensor.battery_voltage
+  battery_soc: sensor.battery_soc
+
+  # --- Điện lưới EVN (Grid) ---
+  grid_power: sensor.lux_grid_flow_live
+  grid_voltage: sensor.grid_voltage
+  grid_frequency: sensor.grid_frequency
+
+  # --- Thống kê Sản lượng PV ---
+  pv_daily: sensor.lux_solar_output_daily
+  pv_total: sensor.pv_energy_total
+
+  # --- Thống kê Tải tiêu thụ ---
+  load_daily: sensor.load_consumption_today
+  load_total: sensor.load_consumption_total
+
+  # --- Thống kê Sạc / Xả Pin ---
+  battery_charge_daily: sensor.charge_energy_today
+  battery_charge_total: sensor.charge_energy_total
+  battery_discharge_daily: sensor.discharge_energy_today
+  battery_discharge_total: sensor.discharge_energy_total
+
+  # --- Thống kê Mua / Bán Điện Lưới ---
+  grid_buy_daily: sensor.energy_from_grid_today
+  grid_buy_total: sensor.energy_from_grid_total
+  grid_sell_daily: sensor.energy_to_grid_today
+  grid_sell_total: sensor.energy_to_grid_total
