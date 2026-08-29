@@ -31,6 +31,11 @@ class PowerFlowCard extends HTMLElement {
     if (el) el.style.display = visible ? 'inline' : 'none';
   }
 
+  setVisible(id, visible) {
+    const el = this.shadowRoot.getElementById(id);
+    if (el) el.style.display = visible ? 'inline' : 'none';
+  }
+
   setText(id, text) {
     const el = this.shadowRoot.getElementById(id);
     if (el) el.textContent = text;
@@ -42,8 +47,8 @@ class PowerFlowCard extends HTMLElement {
     const ent = this.config.entities;
     const isTrue = (val) => val === true || String(val).toLowerCase() === 'true';
 
-    // 1. Đồng hồ LCD Inverter
-    const mainEntityId = ent.load_power || ent.grid_power || ent.pv1_power;
+    // 1. Thời gian LCD
+    const mainEntityId = ent.load_power || ent.grid_power || ent.pv1_power || ent.pv2_power || ent.pv3_power || ent.pv4_power;
     if (mainEntityId && this._hass.states[mainEntityId]) {
       const lastUpdatedStr = this._hass.states[mainEntityId].last_updated;
       const updatedDate = new Date(lastUpdatedStr);
@@ -56,79 +61,159 @@ class PowerFlowCard extends HTMLElement {
       this.setText('inv-lcd-time', timeFormatted);
     }
 
-    // 2. Tự động ẩn PV không có sensor hoặc khi W=0 & V=0
-    const pvs = [
-      { id: 1, pKey: 'pv1_power', vKey: 'pv1_voltage' },
-      { id: 2, pKey: 'pv2_power', vKey: 'pv2_voltage' },
-      { id: 3, pKey: 'pv3_power', vKey: 'pv3_voltage' },
-      { id: 4, pKey: 'pv4_power', vKey: 'pv4_voltage' }
-    ];
+    // 2. Lấy dữ liệu PV (Tự động ẩn W/V khi = 0 hoặc không có sensor, hỗ trợ PV1 - PV4)
+    let pvP = 0;
+    let currentPvY = 14;
+    const pvRowStep = 15;
 
-    let totalPvP = 0;
-    let visiblePvCount = 0;
+    [1, 2, 3, 4].forEach(i => {
+      const pEnt = ent[`pv${i}_power`];
+      const vEnt = ent[`pv${i}_voltage`];
 
-    pvs.forEach(pv => {
-      const pEnt = ent ? ent[pv.pKey] : null;
-      const vEnt = ent ? ent[pv.vKey] : null;
-      const hasSensor = !!(pEnt || vEnt);
+      const hasP = Boolean(pEnt && this._hass?.states[pEnt] !== undefined);
+      const hasV = Boolean(vEnt && this._hass?.states[vEnt] !== undefined);
 
-      const pVal = Math.abs(Math.round(this.getState(pEnt, 0)));
-      const vVal = this.getState(vEnt, 0.0);
+      const pVal = hasP ? Math.abs(Math.round(this.getState(pEnt))) : 0;
+      const vVal = hasV ? this.getState(vEnt, 0) : 0;
 
-      totalPvP += pVal;
+      if (hasP) pvP += pVal;
 
-      const gEl = this.shadowRoot.getElementById(`pv${pv.id}-line`);
+      const showP = hasP && pVal > 0;
+      const showV = hasV && vVal > 0;
 
-      // Ẩn nếu không có sensor HOẶC W=0 và V=0
-      if (!hasSensor || (pVal === 0 && vVal === 0)) {
-        if (gEl) gEl.style.display = 'none';
-      } else {
-        if (gEl) {
-          gEl.style.display = 'inline';
-          // Tự động dồn hàng cho các PV đang hiển thị
-          const yPos = 12 + (visiblePvCount * 14);
-          gEl.setAttribute('transform', `translate(0, ${yPos})`);
+      const lineP = this.shadowRoot.getElementById(`line-pv${i}-p`);
+      const lineV = this.shadowRoot.getElementById(`line-pv${i}-v`);
+      const grp = this.shadowRoot.getElementById(`grp-pv${i}`);
+
+      if (lineP) lineP.style.display = showP ? 'inline' : 'none';
+      if (lineV) lineV.style.display = showV ? 'inline' : 'none';
+
+      if (showP) this.setText(`txt-pv${i}-p`, pVal);
+      if (showV) this.setText(`txt-pv${i}-v`, vVal.toFixed(1));
+
+      if (grp) {
+        if (showP || showV) {
+          grp.style.display = 'inline';
+          grp.setAttribute('transform', `translate(0, ${currentPvY})`);
+          currentPvY += pvRowStep;
+        } else {
+          grp.style.display = 'none';
         }
-        this.setText(`txt-pv${pv.id}-p`, pVal);
-        this.setText(`txt-pv${pv.id}-v`, vVal.toFixed(1));
-        visiblePvCount++;
       }
     });
 
-    // 3. AC PV
+    // Dữ liệu Tải, Pin & Lưới
     const acPvP = Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
     const acPvV = this.getState(ent.ac_pv_voltage, 0.0);
     const acPvF = this.getState(ent.ac_pv_frequency, 0.0);
 
-    this.setText('txt-ac-pv-p', acPvP);
-    this.setText('txt-ac-pv-v', acPvV.toFixed(1));
-    this.setText('txt-ac-pv-f', acPvF.toFixed(2));
+    const loadP = Math.abs(Math.round(this.getState(ent.load_power)));
+    const epsP = Math.abs(Math.round(this.getState(ent.eps_power)));
 
-    // 4. Tải & EPS
-    const loadP = Math.abs(Math.round(this.getState(ent.load_power, 0)));
-    const epsP = Math.abs(Math.round(this.getState(ent.eps_power, 0)));
-    const epsV = this.getState(ent.eps_voltage, 0.0);
-    const epsF = this.getState(ent.eps_frequency, 0.0);
-
-    this.setText('txt-load-p', loadP);
-    this.setText('txt-eps-p', epsP);
-    this.setText('txt-eps-v', epsV.toFixed(1));
-    this.setText('txt-eps-f', epsF.toFixed(2));
-
-    // 5. Pin Lưu Trữ
-    let batP = Math.round(this.getState(ent.battery_power, 0));
-    const batV = this.getState(ent.battery_voltage, 0.0);
+    let batP = Math.round(this.getState(ent.battery_power));
+    const batV = this.getState(ent.battery_voltage, 0);
     const soc = Math.round(this.getState(ent.battery_soc, 0));
 
     const invertBat = isTrue(this.config?.invert_battery_power) || isTrue(ent?.invert_battery_power);
     if (invertBat) batP = -batP;
 
-    this.setText('txt-bat-p', Math.abs(batP));
-    this.setText('txt-bat-v', batV.toFixed(1));
-    this.setText('txt-soc-val', soc);
+    // 3. Lưới
+    const rawGridV = this.getState(ent.grid_voltage, 0.0);
+    const rawGridF = this.getState(ent.grid_frequency, 0.0);
+    let gridP = Math.round(this.getState(ent.grid_power, 0));
 
+    const invertGrid = isTrue(this.config?.invert_grid_power) || isTrue(ent?.invert_grid_power);
+    if (invertGrid) gridP = -gridP;
+
+    const isGridConnected = rawGridV > 50; 
+    const gridV = isGridConnected ? rawGridV : 0.0;
+    const gridF = isGridConnected ? rawGridF : 0.0;
+
+    // 4. Logic EPS
+    const lineEpsV = this.shadowRoot.getElementById('line-eps-v');
+    const lineEpsF = this.shadowRoot.getElementById('line-eps-f');
+    const lblEpsSub = this.shadowRoot.getElementById('lbl-eps-sub');
+    const lblEpsStandby = this.shadowRoot.getElementById('lbl-eps-standby');
+
+    const hasEpsV = ent.eps_voltage && this._hass.states[ent.eps_voltage] !== undefined;
+    const hasEpsF = ent.eps_frequency && this._hass.states[ent.eps_frequency] !== undefined;
+
+    this.setText('txt-eps-p', epsP);
+
+    if (hasEpsV) {
+      if (lineEpsV) lineEpsV.style.display = 'inline';
+      this.setText('txt-eps-v', this.getState(ent.eps_voltage, 0.0).toFixed(1));
+    } else if (lineEpsV) {
+      lineEpsV.style.display = 'none';
+    }
+
+    if (hasEpsF) {
+      if (lineEpsF) lineEpsF.style.display = 'inline';
+      this.setText('txt-eps-f', this.getState(ent.eps_frequency, 0.0).toFixed(2));
+    } else if (lineEpsF) {
+      lineEpsF.style.display = 'none';
+    }
+
+    const showStandby = isGridConnected && (epsP === 0);
+    if (lblEpsStandby) lblEpsStandby.style.display = showStandby ? 'inline' : 'none';
+
+    if (hasEpsV || hasEpsF) {
+      if (lblEpsSub) lblEpsSub.setAttribute('y', '44');
+      if (lblEpsStandby) lblEpsStandby.setAttribute('y', '54');
+    } else {
+      if (lblEpsSub) lblEpsSub.setAttribute('y', '28');
+      if (lblEpsStandby) lblEpsStandby.setAttribute('y', '38');
+    }
+
+    // Thống kê
+    this.setText('stat-pv-today', this.getState(ent.pv_daily).toFixed(2));
+    this.setText('stat-pv-total', this.getState(ent.pv_total).toFixed(2));
+    this.setText('stat-load-today', this.getState(ent.load_daily).toFixed(2));
+    this.setText('stat-load-total', this.getState(ent.load_total).toFixed(2));
+    
+    this.setText('stat-bat-c-today', this.getState(ent.battery_charge_daily).toFixed(2));
+    this.setText('stat-bat-c-total', this.getState(ent.battery_charge_total).toFixed(2));
+    this.setText('stat-bat-d-today', this.getState(ent.battery_discharge_daily).toFixed(2));
+    this.setText('stat-bat-d-total', this.getState(ent.battery_discharge_total).toFixed(2));
+
+    this.setText('stat-grid-b-today', this.getState(ent.grid_buy_daily).toFixed(2));
+    this.setText('stat-grid-b-total', this.getState(ent.grid_buy_total).toFixed(2));
+    this.setText('stat-grid-s-today', this.getState(ent.grid_sell_daily).toFixed(2));
+    this.setText('stat-grid-s-total', this.getState(ent.grid_sell_total).toFixed(2));
+
+    // AC PV
+    const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(ent?.always_show_ac_pv);
+    const grpAcPv = this.shadowRoot.getElementById('grp-pv-ac');
+    if (grpAcPv) grpAcPv.style.display = alwaysShowAcPv ? 'inline' : 'none';
+
+    const hasAcPvP = Boolean(ent.ac_pv_power) && acPvP > 0;
+    const hasAcPvV = Boolean(ent.ac_pv_voltage) && acPvV > 0;
+    const hasAcPvF = Boolean(ent.ac_pv_frequency) && acPvF > 0 && hasAcPvV;
+
+    const lineAcPvP = this.shadowRoot.getElementById('line-ac-pv-p');
+    if (lineAcPvP) {
+      lineAcPvP.style.display = hasAcPvP ? 'inline' : 'none';
+      this.setText('txt-ac-pv-p', acPvP);
+    }
+
+    const lineAcPvV = this.shadowRoot.getElementById('line-ac-pv-v');
+    if (lineAcPvV) {
+      lineAcPvV.style.display = hasAcPvV ? 'inline' : 'none';
+      this.setText('txt-ac-pv-v', acPvV.toFixed(1));
+    }
+
+    const lineAcPvF = this.shadowRoot.getElementById('line-ac-pv-f');
+    if (lineAcPvF) {
+      lineAcPvF.style.display = hasAcPvF ? 'inline' : 'none';
+      this.setText('txt-ac-pv-f', acPvF.toFixed(2));
+    }
+
+    // Pin
     const isCharging = batP > 5;
     const isDischarging = batP < -5;
+
+    this.setText('txt-bat-p', Math.abs(batP));
+    this.setText('txt-bat-v', batV.toFixed(1));
 
     const lblBatMode = this.shadowRoot.getElementById('lbl-bat-mode');
     if (lblBatMode) {
@@ -144,53 +229,30 @@ class PowerFlowCard extends HTMLElement {
     const batFill = this.shadowRoot.getElementById('bat-fill');
     const maxH = 39.0;
     const h = Math.max(1, (soc / 100) * maxH);
+    if (batFill) {
+      batFill.setAttribute('height', h);
+      batFill.setAttribute('y', 8 + (maxH - h));
+    }
+
     let batColor = '#16a34a';
     if (soc <= 20) batColor = '#dc2626';
     else if (soc <= 40) batColor = '#ea580c';
 
-    if (batFill) {
-      batFill.setAttribute('height', h);
-      batFill.setAttribute('y', 8 + (maxH - h));
-      batFill.setAttribute('fill', batColor);
-    }
+    this.setText('txt-soc-val', soc);
     const txtSoc = this.shadowRoot.getElementById('txt-soc-val');
     if (txtSoc) txtSoc.setAttribute('fill', batColor);
+    if (batFill) batFill.setAttribute('fill', batColor);
 
-    // 6. Lưới Điện
-    const rawGridV = this.getState(ent.grid_voltage, 0.0);
-    const rawGridF = this.getState(ent.grid_frequency, 0.0);
-    let gridP = Math.round(this.getState(ent.grid_power, 0));
+    // Tải
+    this.setText('txt-load-p', loadP);
 
-    const invertGrid = isTrue(this.config?.invert_grid_power) || isTrue(ent?.invert_grid_power);
-    if (invertGrid) gridP = -gridP;
+    const loadIconColor = isGridConnected ? '#16a34a' : (loadP > 0 ? '#e11d48' : '#94a3b8');
+    const loadIcons = this.shadowRoot.querySelectorAll('.load-icon-color');
+    loadIcons.forEach(icon => icon.setAttribute('fill', loadIconColor));
 
-    const isGridConnected = rawGridV > 50; 
-    const gridV = isGridConnected ? rawGridV : 0.0;
-    const gridF = isGridConnected ? rawGridF : 0.0;
-
-    this.setText('txt-grid-p', Math.abs(gridP));
-    this.setText('txt-grid-v', gridV.toFixed(1));
-    this.setText('txt-grid-f', gridF.toFixed(2));
-
-    // Thống kê sản lượng
-    this.setText('stat-pv-today', this.getState(ent.pv_daily, 0).toFixed(2));
-    this.setText('stat-pv-total', this.getState(ent.pv_total, 0).toFixed(2));
-    this.setText('stat-load-today', this.getState(ent.load_daily, 0).toFixed(2));
-    this.setText('stat-load-total', this.getState(ent.load_total, 0).toFixed(2));
-    
-    this.setText('stat-bat-c-today', this.getState(ent.battery_charge_daily, 0).toFixed(2));
-    this.setText('stat-bat-c-total', this.getState(ent.battery_charge_total, 0).toFixed(2));
-    this.setText('stat-bat-d-today', this.getState(ent.battery_discharge_daily, 0).toFixed(2));
-    this.setText('stat-bat-d-total', this.getState(ent.battery_discharge_total, 0).toFixed(2));
-
-    this.setText('stat-grid-b-today', this.getState(ent.grid_buy_daily, 0).toFixed(2));
-    this.setText('stat-grid-b-total', this.getState(ent.grid_buy_total, 0).toFixed(2));
-    this.setText('stat-grid-s-today', this.getState(ent.grid_sell_daily, 0).toFixed(2));
-    this.setText('stat-grid-s-total', this.getState(ent.grid_sell_total, 0).toFixed(2));
-
-    // 7. Hiệu ứng dòng chảy
-    this.setFlowVisible('flow-pv', totalPvP > 5);
-    this.setFlowVisible('flow-ac-pv', acPvP > 5);
+    // Luồng điện
+    this.setFlowVisible('flow-pv', pvP > 5);
+    this.setFlowVisible('flow-ac-pv', alwaysShowAcPv && acPvP > 5);
     this.setFlowVisible('flow-eps', epsP > 5);
     this.setFlowVisible('flow-bus-to-load', isGridConnected && loadP > 5);
 
@@ -200,17 +262,19 @@ class PowerFlowCard extends HTMLElement {
     const invLed = this.shadowRoot.getElementById('inv-led');
     if (invLed) invLed.setAttribute('fill', isGridConnected ? '#16a34a' : '#dc2626');
 
+    // Lưới
     const isImporting = isGridConnected && gridP < -5;
     const isExporting = isGridConnected && gridP > 5;
 
     this.setFlowVisible('flow-grid-import', isImporting);
     this.setFlowVisible('flow-grid-export', isExporting);
 
-    const invGeneratingPower = totalPvP + (isDischarging ? Math.abs(batP) : 0);
+    const invGeneratingPower = pvP + (isDischarging ? Math.abs(batP) : 0);
 
+    // FIX LOGIC KHI MẤT LƯỚI
     if (!isGridConnected) {
-      this.setFlowVisible('flow-inv-to-bus', invGeneratingPower > 5);
-      this.setFlowVisible('flow-bus-to-inv', acPvP > 5);
+      this.setFlowVisible('flow-inv-to-bus', false); // Tắt luồng từ Inverter sang AC Grid bus
+      this.setFlowVisible('flow-bus-to-inv', false);
     } else {
       this.setFlowVisible('flow-inv-to-bus', invGeneratingPower > 5);
       this.setFlowVisible('flow-bus-to-inv', isImporting && isCharging);
@@ -219,9 +283,9 @@ class PowerFlowCard extends HTMLElement {
     const acNode = this.shadowRoot.getElementById('ac-bus-node');
     if (acNode) acNode.setAttribute('fill', isGridConnected ? '#16a34a' : '#0284c7');
 
-    const loadIconColor = isGridConnected ? '#16a34a' : (loadP > 0 ? '#e11d48' : '#94a3b8');
-    const loadIcons = this.shadowRoot.querySelectorAll('.load-icon-color');
-    loadIcons.forEach(icon => icon.setAttribute('fill', loadIconColor));
+    this.setText('txt-grid-p', Math.abs(gridP));
+    this.setText('txt-grid-v', gridV.toFixed(1));
+    this.setText('txt-grid-f', gridF.toFixed(2));
 
     const lblGridMode = this.shadowRoot.getElementById('lbl-grid-mode');
     const pill = this.shadowRoot.getElementById('sys-status-pill');
@@ -273,12 +337,11 @@ class PowerFlowCard extends HTMLElement {
         .status-pill.exporting { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; } .status-pill.exporting .status-dot { background: #0284c7; }
         .status-pill.importing { background: #fffbe6; color: #b45309; border-color: #fde68a; } .status-pill.importing .status-dot { background: #d97706; }
         .diagram-svg { width: 100%; height: auto; display: block; overflow: visible; }
-        .svg-txt-bold { font-size: 11px; font-weight: 800; fill: #0f172a; }
+        .svg-txt-bold { font-size: 12.5px; font-weight: 800; fill: #0f172a; }
         .svg-txt-sub  { font-size: 9.5px; fill: #475569; font-weight: 700; }
-        .highlight-val { font-size: 10.5px; font-weight: 800; fill: #0f172a; }
-        .highlight-freq { font-size: 10.5px; font-weight: 800; fill: #0f172a; }
-        .unit-lbl { font-size: 8.5px; font-weight: 700; fill: #64748b; }
-        .pv-title { font-size: 8.5px; font-weight: 800; fill: #0369a1; }
+        .highlight-val { font-size: 11.5px; font-weight: 800; fill: #0f172a; }
+        .highlight-freq { font-size: 11.5px; font-weight: 800; fill: #0f172a; }
+        .unit-lbl { font-size: 9.5px; font-weight: 700; fill: #64748b; }
         .chv-block { fill: #eab308; stroke: #fef08a; stroke-width: 0.5; animation: block-wave 1.4s infinite ease-in-out; }
         @keyframes block-wave { 0% { fill: #fef08a; opacity: 0.25; } 50% { fill: #eab308; opacity: 1; } 100% { fill: #fef08a; opacity: 0.25; } }
       </style>
@@ -392,7 +455,7 @@ class PowerFlowCard extends HTMLElement {
               <span class="status-dot"></span> <span id="sys-status-text">Hòa Lưới</span>
             </div>
 
-            <svg class="diagram-svg" viewBox="0 0 420 250">
+            <svg class="diagram-svg" viewBox="0 0 420 245">
               <defs>
                 <path id="chv-block-r" d="M 0,0 L 8,0 L 12,5 L 8,10 L 0,10 L 3.5,5 Z"/>
                 <path id="chv-block-l" d="M 12,0 L 4,0 L 0,5 L 4,10 L 12,10 L 8.5,5 Z"/>
@@ -401,9 +464,9 @@ class PowerFlowCard extends HTMLElement {
               </defs>
 
               <g id="flow-pv">
-                <use href="#chv-block-d" x="175" y="45" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-d" x="175" y="57" class="chv-block" style="animation-delay: 0.35s;" />
-                <use href="#chv-block-d" x="175" y="69" class="chv-block" style="animation-delay: 0.70s;" />
+                <use href="#chv-block-d" x="175" y="40" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-d" x="175" y="52" class="chv-block" style="animation-delay: 0.35s;" />
+                <use href="#chv-block-d" x="175" y="64" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
               <g id="flow-ac-pv">
@@ -471,9 +534,53 @@ class PowerFlowCard extends HTMLElement {
 
               <circle id="ac-bus-node" cx="290" cy="105" r="6" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
 
-              <!-- KHU VỰC DÒNG PV TỰ ĐỘNG LỌC -->
-              <g id="grp-pv" transform="translate(10, 0)">
-                <g transform="translate(112, 0) scale(0.42)">
+              <!-- Khối PV hỗ trợ PV1, PV2, PV3, PV4 tự xếp dòng & tự ẩn -->
+              <g id="grp-pv" transform="translate(48, 2)">
+                <g id="grp-pv1">
+                  <g id="line-pv1-p">
+                    <text x="0" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv1-p">0</text>
+                    <text x="28" y="0" class="unit-lbl">W</text>
+                  </g>
+                  <g id="line-pv1-v">
+                    <text x="46" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv1-v">0.0</text>
+                    <text x="82" y="0" class="unit-lbl">V</text>
+                  </g>
+                </g>
+
+                <g id="grp-pv2">
+                  <g id="line-pv2-p">
+                    <text x="0" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv2-p">0</text>
+                    <text x="28" y="0" class="unit-lbl">W</text>
+                  </g>
+                  <g id="line-pv2-v">
+                    <text x="46" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv2-v">0.0</text>
+                    <text x="82" y="0" class="unit-lbl">V</text>
+                  </g>
+                </g>
+
+                <g id="grp-pv3">
+                  <g id="line-pv3-p">
+                    <text x="0" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv3-p">0</text>
+                    <text x="28" y="0" class="unit-lbl">W</text>
+                  </g>
+                  <g id="line-pv3-v">
+                    <text x="46" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv3-v">0.0</text>
+                    <text x="82" y="0" class="unit-lbl">V</text>
+                  </g>
+                </g>
+
+                <g id="grp-pv4">
+                  <g id="line-pv4-p">
+                    <text x="0" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv4-p">0</text>
+                    <text x="28" y="0" class="unit-lbl">W</text>
+                  </g>
+                  <g id="line-pv4-v">
+                    <text x="46" y="0" font-size="12.5" font-weight="800" fill="#0f172a" id="txt-pv4-v">0.0</text>
+                    <text x="82" y="0" class="unit-lbl">V</text>
+                  </g>
+                </g>
+
+                <g transform="translate(108, -8) scale(0.48)">
                   <g stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" fill="none">
                     <circle cx="30" cy="30" r="13" />
                     <line x1="30" y1="11" x2="30" y2="5" /><line x1="16" y1="16" x2="11" y2="11" />
@@ -487,45 +594,8 @@ class PowerFlowCard extends HTMLElement {
                     <line x1="56" y1="42" x2="56" y2="86" /><line x1="68" y1="42" x2="75" y2="86" />
                   </g>
                 </g>
-
-                <!-- PV1 -->
-                <g id="pv1-line" transform="translate(0, 12)">
-                  <text x="0" y="0" class="pv-title">PV1</text>
-                  <text x="24" y="0" class="svg-txt-bold" id="txt-pv1-p">0</text>
-                  <text x="52" y="0" class="unit-lbl">W</text>
-                  <text x="66" y="0" class="highlight-val" id="txt-pv1-v">0.0</text>
-                  <text x="96" y="0" class="unit-lbl">V</text>
-                </g>
-
-                <!-- PV2 -->
-                <g id="pv2-line" transform="translate(0, 26)">
-                  <text x="0" y="0" class="pv-title">PV2</text>
-                  <text x="24" y="0" class="svg-txt-bold" id="txt-pv2-p">0</text>
-                  <text x="52" y="0" class="unit-lbl">W</text>
-                  <text x="66" y="0" class="highlight-val" id="txt-pv2-v">0.0</text>
-                  <text x="96" y="0" class="unit-lbl">V</text>
-                </g>
-
-                <!-- PV3 -->
-                <g id="pv3-line" transform="translate(0, 40)">
-                  <text x="0" y="0" class="pv-title">PV3</text>
-                  <text x="24" y="0" class="svg-txt-bold" id="txt-pv3-p">0</text>
-                  <text x="52" y="0" class="unit-lbl">W</text>
-                  <text x="66" y="0" class="highlight-val" id="txt-pv3-v">0.0</text>
-                  <text x="96" y="0" class="unit-lbl">V</text>
-                </g>
-
-                <!-- PV4 -->
-                <g id="pv4-line" transform="translate(0, 54)">
-                  <text x="0" y="0" class="pv-title">PV4</text>
-                  <text x="24" y="0" class="svg-txt-bold" id="txt-pv4-p">0</text>
-                  <text x="52" y="0" class="unit-lbl">W</text>
-                  <text x="66" y="0" class="highlight-val" id="txt-pv4-v">0.0</text>
-                  <text x="96" y="0" class="unit-lbl">V</text>
-                </g>
               </g>
 
-              <!-- AC PV -->
               <g id="grp-pv-ac">
                 <g id="line-ac-pv-p">
                   <text x="265" y="12" text-anchor="end">
@@ -559,16 +629,19 @@ class PowerFlowCard extends HTMLElement {
                 </g>
               </g>
 
-              <!-- PIN LƯU TRỮ -->
               <g transform="translate(64, 76)">
                 <rect x="10" y="1" width="10" height="4" rx="1.5" fill="#16a34a"/>
                 <rect x="2" y="5" width="26" height="44" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
                 <rect id="bat-fill" x="4" y="8" width="22" height="39" rx="1.5" fill="#16a34a"/>
                 
-                <text x="-6" y="8" text-anchor="end">
-                  <tspan id="txt-bat-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
-                </text>
+                <g id="line-bat-p">
+                  <text x="-6" y="8" text-anchor="end">
+                    <tspan id="txt-bat-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
+                  </text>
+                </g>
+
                 <text x="-6" y="19" class="svg-txt-sub" id="lbl-bat-mode" text-anchor="end">Chờ sạc / xả</text>
+
                 <text x="-6" y="31" text-anchor="end">
                   <tspan id="txt-bat-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="1.5">V</tspan>
                 </text>
@@ -577,7 +650,6 @@ class PowerFlowCard extends HTMLElement {
                 </text>
               </g>
 
-              <!-- INVERTER -->
               <g transform="translate(154, 76)">
                 <rect x="0" y="0" width="54" height="56" rx="6" fill="#ffffff" stroke="#334155" stroke-width="2"/>
                 <circle cx="9" cy="9" r="3.5" fill="#16a34a" id="inv-led"/>
@@ -587,14 +659,15 @@ class PowerFlowCard extends HTMLElement {
                 <path d="M 0 50 L 54 50 L 54 54 C 54 55.5 52.5 57 51 57 L 3 57 C 1.5 57 0 55.5 0 54 Z" fill="#64748b"/>
               </g>
 
-              <!-- LƯỚI ĐIỆN -->
               <g transform="translate(338, 70)">
                 <svg x="0" y="0" width="34" height="44" viewBox="0 0 30 40">
                   <path d="M15 2L5 38M15 2L25 38M2 12H28M5 22H25" stroke="#16a34a" stroke-width="3" fill="none" stroke-linecap="round"/>
                 </svg>
-                <text x="36" y="10">
-                  <tspan id="txt-grid-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
-                </text>
+                <g id="line-grid-p">
+                  <text x="36" y="10">
+                    <tspan id="txt-grid-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
+                  </text>
+                </g>
                 <text x="36" y="21" class="svg-txt-sub" id="lbl-grid-mode" font-weight="bold" fill="#dc2626">Mất lưới</text>
                 <text x="36" y="32">
                   <tspan id="txt-grid-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="1.5">V</tspan>
@@ -604,7 +677,6 @@ class PowerFlowCard extends HTMLElement {
                 </text>
               </g>
 
-              <!-- EPS -->
               <g id="grp-eps" transform="translate(134, 172)">
                 <svg width="32" height="32" viewBox="0 0 30 30">
                   <rect x="3" y="7" width="18" height="16" rx="2" fill="none" stroke="#16a34a" stroke-width="2.8"/>
@@ -613,19 +685,23 @@ class PowerFlowCard extends HTMLElement {
                   <path d="M22 15H26" stroke="#16a34a" stroke-width="2.2"/>
                 </svg>
 
-                <text x="38" y="12">
-                  <tspan id="txt-eps-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
-                </text>
+                <g id="line-eps-p">
+                  <text x="38" y="12">
+                    <tspan id="txt-eps-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
+                  </text>
+                </g>
+
                 <text x="38" y="23" id="line-eps-v">
                   <tspan id="txt-eps-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="1.5">V</tspan>
                 </text>
                 <text x="38" y="34" id="line-eps-f">
                   <tspan id="txt-eps-f" class="highlight-freq">0.00</tspan><tspan class="unit-lbl" dx="1.5">Hz</tspan>
                 </text>
-                <text x="38" y="45" class="svg-txt-sub">Công suất EPS</text>
+
+                <text x="38" y="44" id="lbl-eps-sub" class="svg-txt-sub">Công suất EPS</text>
+                <text x="38" y="54" id="lbl-eps-standby" style="font-size: 9px; fill: #16a34a; font-weight: 800; display: none;">Chế độ chờ</text>
               </g>
 
-              <!-- TẢI TIÊU THỤ -->
               <g transform="translate(273, 175)">
                 <svg width="32" height="32" viewBox="0 0 30 30">
                   <rect x="7" y="5" width="2.5" height="5" class="load-icon-color" fill="#16a34a"/>
@@ -655,5 +731,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "power-flow-card",
   name: "Power Flow Card",
-  description: "Sơ đồ luồng năng lượng cho Inverter Hybrid (Lọc PV thông minh)"
+  description: "Sơ đồ luồng năng lượng cho Inverter Hybrid"
 });
