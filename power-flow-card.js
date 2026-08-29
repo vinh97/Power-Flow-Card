@@ -103,10 +103,6 @@ class PowerFlowCard extends HTMLElement {
     });
 
     // Dữ liệu Tải, Pin & Lưới
-    const acPvP = Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
-    const acPvV = this.getState(ent.ac_pv_voltage, 0.0);
-    const acPvF = this.getState(ent.ac_pv_frequency, 0.0);
-
     const loadP = Math.abs(Math.round(this.getState(ent.load_power)));
     const epsP = Math.abs(Math.round(this.getState(ent.eps_power)));
 
@@ -161,6 +157,37 @@ class PowerFlowCard extends HTMLElement {
       if (lblEpsStandby) lblEpsStandby.setAttribute('y', '38');
     }
 
+    // 5. AC PV (Ẩn cả V và Hz nếu không khai báo ac_pv_voltage)
+    const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(ent?.always_show_ac_pv);
+    const grpAcPv = this.shadowRoot.getElementById('grp-pv-ac');
+    if (grpAcPv) grpAcPv.style.display = alwaysShowAcPv ? 'inline' : 'none';
+
+    const acPvP = Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
+    const acPvV = this.getState(ent.ac_pv_voltage, 0.0);
+    const acPvF = this.getState(ent.ac_pv_frequency, 0.0);
+
+    const hasAcPvP = Boolean(ent.ac_pv_power && this._hass?.states[ent.ac_pv_power] !== undefined) && acPvP > 0;
+    const hasAcPvV = Boolean(ent.ac_pv_voltage && this._hass?.states[ent.ac_pv_voltage] !== undefined);
+    const hasAcPvF = hasAcPvV && Boolean(ent.ac_pv_frequency && this._hass?.states[ent.ac_pv_frequency] !== undefined);
+
+    const lineAcPvP = this.shadowRoot.getElementById('line-ac-pv-p');
+    if (lineAcPvP) {
+      lineAcPvP.style.display = hasAcPvP ? 'inline' : 'none';
+      this.setText('txt-ac-pv-p', acPvP);
+    }
+
+    const lineAcPvV = this.shadowRoot.getElementById('line-ac-pv-v');
+    if (lineAcPvV) {
+      lineAcPvV.style.display = (hasAcPvV && acPvV > 0) ? 'inline' : 'none';
+      if (hasAcPvV) this.setText('txt-ac-pv-v', acPvV.toFixed(1));
+    }
+
+    const lineAcPvF = this.shadowRoot.getElementById('line-ac-pv-f');
+    if (lineAcPvF) {
+      lineAcPvF.style.display = (hasAcPvF && acPvF > 0) ? 'inline' : 'none';
+      if (hasAcPvF) this.setText('txt-ac-pv-f', acPvF.toFixed(2));
+    }
+
     // Thống kê
     this.setText('stat-pv-today', this.getState(ent.pv_daily).toFixed(2));
     this.setText('stat-pv-total', this.getState(ent.pv_total).toFixed(2));
@@ -176,33 +203,6 @@ class PowerFlowCard extends HTMLElement {
     this.setText('stat-grid-b-total', this.getState(ent.grid_buy_total).toFixed(2));
     this.setText('stat-grid-s-today', this.getState(ent.grid_sell_daily).toFixed(2));
     this.setText('stat-grid-s-total', this.getState(ent.grid_sell_total).toFixed(2));
-
-    // AC PV
-    const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(ent?.always_show_ac_pv);
-    const grpAcPv = this.shadowRoot.getElementById('grp-pv-ac');
-    if (grpAcPv) grpAcPv.style.display = alwaysShowAcPv ? 'inline' : 'none';
-
-    const hasAcPvP = Boolean(ent.ac_pv_power) && acPvP > 0;
-    const hasAcPvV = Boolean(ent.ac_pv_voltage) && acPvV > 0;
-    const hasAcPvF = Boolean(ent.ac_pv_frequency) && acPvF > 0 && hasAcPvV;
-
-    const lineAcPvP = this.shadowRoot.getElementById('line-ac-pv-p');
-    if (lineAcPvP) {
-      lineAcPvP.style.display = hasAcPvP ? 'inline' : 'none';
-      this.setText('txt-ac-pv-p', acPvP);
-    }
-
-    const lineAcPvV = this.shadowRoot.getElementById('line-ac-pv-v');
-    if (lineAcPvV) {
-      lineAcPvV.style.display = hasAcPvV ? 'inline' : 'none';
-      this.setText('txt-ac-pv-v', acPvV.toFixed(1));
-    }
-
-    const lineAcPvF = this.shadowRoot.getElementById('line-ac-pv-f');
-    if (lineAcPvF) {
-      lineAcPvF.style.display = hasAcPvF ? 'inline' : 'none';
-      this.setText('txt-ac-pv-f', acPvF.toFixed(2));
-    }
 
     // Pin
     const isCharging = batP > 5;
