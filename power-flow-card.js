@@ -46,7 +46,7 @@ class PowerFlowCard extends HTMLElement {
     const configThreePhase = this.config?.three_phase ?? ent?.three_phase;
     const isThreePhase = configThreePhase !== undefined
       ? isTrue(configThreePhase)
-      : Boolean(ent?.load_power_l1 || ent?.grid_power_l1 || ent?.eps_power_l1);
+      : Boolean(ent?.load_power_l1 || ent?.grid_power_l1 || ent?.eps_power_l1 || ent?.ac_pv_power_l1);
 
     // 1. Thời gian LCD
     let latestDate = null;
@@ -172,22 +172,13 @@ class PowerFlowCard extends HTMLElement {
       if (grpEps1p) grpEps1p.style.display = 'none';
       if (grpEps3p) grpEps3p.style.display = 'inline';
 
-      let loadL1 = Math.abs(Math.round(this.getState(ent.load_power_l1, 0)));
-      let loadL2 = Math.abs(Math.round(this.getState(ent.load_power_l2, 0)));
-      let loadL3 = Math.abs(Math.round(this.getState(ent.load_power_l3, 0)));
+      const loadL1 = Math.abs(Math.round(this.getState(ent.load_power_l1, 0)));
+      const loadL2 = Math.abs(Math.round(this.getState(ent.load_power_l2, 0)));
+      const loadL3 = Math.abs(Math.round(this.getState(ent.load_power_l3, 0)));
 
-      let epsL1 = Math.abs(Math.round(this.getState(ent.eps_power_l1, 0)));
-      let epsL2 = Math.abs(Math.round(this.getState(ent.eps_power_l2, 0)));
-      let epsL3 = Math.abs(Math.round(this.getState(ent.eps_power_l3, 0)));
-
-      if (!isGridConnected) {
-        const syncL1 = epsL1 || loadL1;
-        const syncL2 = epsL2 || loadL2;
-        const syncL3 = epsL3 || loadL3;
-        loadL1 = epsL1 = syncL1;
-        loadL2 = epsL2 = syncL2;
-        loadL3 = epsL3 = syncL3;
-      }
+      const epsL1 = Math.abs(Math.round(this.getState(ent.eps_power_l1, 0)));
+      const epsL2 = Math.abs(Math.round(this.getState(ent.eps_power_l2, 0)));
+      const epsL3 = Math.abs(Math.round(this.getState(ent.eps_power_l3, 0)));
 
       loadP = (ent.load_power_l1 || ent.load_power_l2 || ent.load_power_l3) 
         ? (loadL1 + loadL2 + loadL3) 
@@ -196,11 +187,6 @@ class PowerFlowCard extends HTMLElement {
       epsP = (ent.eps_power_l1 || ent.eps_power_l2 || ent.eps_power_l3)
         ? (epsL1 + epsL2 + epsL3)
         : Math.abs(Math.round(this.getState(ent.eps_power, 0)));
-
-      if (!isGridConnected) {
-        const syncP = epsP || loadP;
-        loadP = epsP = syncP;
-      }
 
       this.setText('txt-load-l1', loadL1);
       this.setText('txt-load-l2', loadL2);
@@ -217,12 +203,6 @@ class PowerFlowCard extends HTMLElement {
 
       loadP = Math.abs(Math.round(this.getState(ent.load_power, 0)));
       epsP = Math.abs(Math.round(this.getState(ent.eps_power, 0)));
-
-      if (!isGridConnected) {
-        const syncP = epsP || loadP;
-        loadP = syncP;
-        epsP = syncP;
-      }
 
       this.setText('txt-load-p', loadP);
       this.setText('txt-eps-p', epsP);
@@ -242,7 +222,7 @@ class PowerFlowCard extends HTMLElement {
     const gridV = isGridConnected ? rawGridV : 0.0;
     const gridF = isGridConnected ? rawGridF : 0.0;
 
-    // 6. Nhãn EPS & Tiêu thụ (Đã điều chỉnh căn hàng động)
+    // 6. Nhãn EPS & Tiêu thụ
     const lineEpsV = this.shadowRoot.getElementById('line-eps-v');
     const lineEpsF = this.shadowRoot.getElementById('line-eps-f');
     const lblEpsSub = this.shadowRoot.getElementById('lbl-eps-sub');
@@ -279,7 +259,6 @@ class PowerFlowCard extends HTMLElement {
         }
       }
 
-      // Giới hạn Y tối thiểu là 44 để tránh đè lên Icon EPS (cao 32px)
       const nextSubY = Math.max(currentEpsY + 14, 44);
       if (lblEpsSub) { lblEpsSub.setAttribute('x', '0'); lblEpsSub.setAttribute('y', nextSubY); }
       if (lblLoadSub) { lblLoadSub.setAttribute('x', '36'); lblLoadSub.setAttribute('y', '28'); }
@@ -292,42 +271,65 @@ class PowerFlowCard extends HTMLElement {
     // 7. AC PV / Máy phát
     const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(ent?.always_show_ac_pv);
     let acPvP = 0;
-    if (isThreePhase && (ent.ac_pv_power_l1 || ent.ac_pv_power_l2 || ent.ac_pv_power_l3)) {
-      acPvP = Math.abs(Math.round(
-        this.getState(ent.ac_pv_power_l1, 0) +
-        this.getState(ent.ac_pv_power_l2, 0) +
-        this.getState(ent.ac_pv_power_l3, 0)
-      ));
+
+    const grpAcPv1p = this.shadowRoot.getElementById('grp-ac-pv-1p');
+    const grpAcPv3p = this.shadowRoot.getElementById('grp-ac-pv-3p');
+
+    if (isThreePhase) {
+      if (grpAcPv1p) grpAcPv1p.style.display = 'none';
+      if (grpAcPv3p) grpAcPv3p.style.display = 'inline';
+
+      const acPvL1 = Math.abs(Math.round(this.getState(ent.ac_pv_power_l1, 0)));
+      const acPvL2 = Math.abs(Math.round(this.getState(ent.ac_pv_power_l2, 0)));
+      const acPvL3 = Math.abs(Math.round(this.getState(ent.ac_pv_power_l3, 0)));
+
+      acPvP = (ent.ac_pv_power_l1 || ent.ac_pv_power_l2 || ent.ac_pv_power_l3)
+        ? (acPvL1 + acPvL2 + acPvL3)
+        : Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
+
+      this.setText('txt-ac-pv-l1', acPvL1);
+      this.setText('txt-ac-pv-l2', acPvL2);
+      this.setText('txt-ac-pv-l3', acPvL3);
     } else {
+      if (grpAcPv1p) grpAcPv1p.style.display = 'inline';
+      if (grpAcPv3p) grpAcPv3p.style.display = 'none';
+
       acPvP = Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
+      this.setText('txt-ac-pv-p', acPvP);
     }
 
     const acPvV = this.getState(ent.ac_pv_voltage, 0.0);
     const acPvF = this.getState(ent.ac_pv_frequency, 0.0);
 
-    const hasAcPvP = Boolean((ent.ac_pv_power || ent.ac_pv_power_l1) && acPvP > 0);
+    const hasAcPvP = Boolean((ent.ac_pv_power || ent.ac_pv_power_l1 || ent.ac_pv_power_l2 || ent.ac_pv_power_l3) && acPvP > 0);
     const hasAcPvV = Boolean(ent.ac_pv_voltage && this._hass?.states[ent.ac_pv_voltage] !== undefined);
     const hasAcPvF = hasAcPvV && Boolean(ent.ac_pv_frequency && this._hass?.states[ent.ac_pv_frequency] !== undefined);
 
     const grpAcPv = this.shadowRoot.getElementById('grp-pv-ac');
     if (grpAcPv) grpAcPv.style.display = (alwaysShowAcPv || hasAcPvP) ? 'inline' : 'none';
 
-    const lineAcPvP = this.shadowRoot.getElementById('line-ac-pv-p');
-    if (lineAcPvP) {
-      lineAcPvP.style.display = hasAcPvP ? 'inline' : 'none';
-      this.setText('txt-ac-pv-p', acPvP);
-    }
-
     const lineAcPvV = this.shadowRoot.getElementById('line-ac-pv-v');
+    const lineAcPvF = this.shadowRoot.getElementById('line-ac-pv-f');
+    let currentAcPvY = isThreePhase ? 34 : 12;
+
     if (lineAcPvV) {
-      lineAcPvV.style.display = (hasAcPvV && acPvV > 0) ? 'inline' : 'none';
-      if (hasAcPvV) this.setText('txt-ac-pv-v', acPvV.toFixed(1));
+      const showV = hasAcPvV && acPvV > 0;
+      lineAcPvV.style.display = showV ? 'inline' : 'none';
+      if (showV) {
+        currentAcPvY += 12;
+        lineAcPvV.setAttribute('y', currentAcPvY);
+        this.setText('txt-ac-pv-v', acPvV.toFixed(1));
+      }
     }
 
-    const lineAcPvF = this.shadowRoot.getElementById('line-ac-pv-f');
     if (lineAcPvF) {
-      lineAcPvF.style.display = (hasAcPvF && acPvF > 0) ? 'inline' : 'none';
-      if (hasAcPvF) this.setText('txt-ac-pv-f', acPvF.toFixed(2));
+      const showF = hasAcPvF && acPvF > 0;
+      lineAcPvF.style.display = showF ? 'inline' : 'none';
+      if (showF) {
+        currentAcPvY += 12;
+        lineAcPvF.setAttribute('y', currentAcPvY);
+        this.setText('txt-ac-pv-f', acPvF.toFixed(2));
+      }
     }
 
     // 8. Thống kê năng lượng
@@ -402,7 +404,7 @@ class PowerFlowCard extends HTMLElement {
     }
 
     const loadIconColor = isGridConnected ? '#16a34a' : (hasLoadPower ? '#e11d48' : '#94a3b8');
-    const loadIcons = this.shadowRoot.querySelectorAll('.load-icon-color');
+    const loadIcons = this.shadowRoot.querySelectorAll('#icon-load .load-icon-color');
     loadIcons.forEach(icon => icon.setAttribute('fill', loadIconColor));
 
     const showAcPvFlow = hasAcPvPower && (
@@ -557,8 +559,8 @@ class PowerFlowCard extends HTMLElement {
                 </div>
                 <div class="stat-icon">
                   <svg width="26" height="26" viewBox="0 0 30 30">
-                    <rect x="7" y="5" width="2.5" height="5" class="load-icon-color" fill="#16a34a"/>
-                    <path d="M 3 13 L 15 3 L 27 13 V 26 C 27 26.8 26.3 27.5 25.5 27.5 H 4.5 C 3.7 27.5 3 26.8 3 26 Z" class="load-icon-color" fill="#16a34a"/>
+                    <rect x="7" y="5" width="2.5" height="5" fill="#16a34a"/>
+                    <path d="M 3 13 L 15 3 L 27 13 V 26 C 27 26.8 26.3 27.5 25.5 27.5 H 4.5 C 3.7 27.5 3 26.8 3 26 Z" fill="#16a34a"/>
                     <polygon points="16,8 11.5,15 15,15 14,22 18.5,15 15,15" fill="#ffffff"/>
                   </svg>
                 </div>
@@ -765,21 +767,25 @@ class PowerFlowCard extends HTMLElement {
               </g>
 
               <g id="grp-pv-ac">
-                <g id="line-ac-pv-p">
+                <g id="grp-ac-pv-1p">
                   <text x="265" y="12" text-anchor="end">
                     <tspan id="txt-ac-pv-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan>
                   </text>
                 </g>
-                <g id="line-ac-pv-v">
-                  <text x="265" y="23" text-anchor="end">
-                    <tspan id="txt-ac-pv-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="1.5">V</tspan>
-                  </text>
+
+                <g id="grp-ac-pv-3p" style="display:none;">
+                  <text x="265" y="10" text-anchor="end"><tspan id="txt-ac-pv-l1" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan></text>
+                  <text x="265" y="22" text-anchor="end"><tspan id="txt-ac-pv-l2" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan></text>
+                  <text x="265" y="34" text-anchor="end"><tspan id="txt-ac-pv-l3" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="1.5">W</tspan></text>
                 </g>
-                <g id="line-ac-pv-f">
-                  <text x="265" y="34" text-anchor="end">
-                    <tspan id="txt-ac-pv-f" class="highlight-freq">0.00</tspan><tspan class="unit-lbl" dx="1.5">Hz</tspan>
-                  </text>
-                </g>
+
+                <text x="265" y="23" id="line-ac-pv-v" text-anchor="end">
+                  <tspan id="txt-ac-pv-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="1.5">V</tspan>
+                </text>
+                <text x="265" y="34" id="line-ac-pv-f" text-anchor="end">
+                  <tspan id="txt-ac-pv-f" class="highlight-freq">0.00</tspan><tspan class="unit-lbl" dx="1.5">Hz</tspan>
+                </text>
+
                 <g transform="translate(271, 0)">
                   <rect x="0" y="0" width="44" height="36" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>
                   <g fill="#10b981">
@@ -882,7 +888,6 @@ class PowerFlowCard extends HTMLElement {
                   <tspan id="txt-eps-f" class="highlight-freq">0.00</tspan><tspan class="unit-lbl" dx="1.5">Hz</tspan>
                 </text>
 
-                <!-- Vị trí nhãn phụ -->
                 <text x="0" y="44" id="lbl-eps-sub" class="svg-txt-sub">Công suất dự phòng</text>
                 <text x="0" y="55" id="lbl-eps-standby" style="font-size: 9px; fill: #16a34a; font-weight: 800; display: none;">Chế độ chờ</text>
               </g>
