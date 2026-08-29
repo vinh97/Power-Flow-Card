@@ -271,9 +271,10 @@ class PowerFlowCard extends HTMLElement {
 
     const invGeneratingPower = pvP + (isDischarging ? Math.abs(batP) : 0);
 
+    // FIX LOGIC KHI MẤT LƯỚI
     if (!isGridConnected) {
-      this.setFlowVisible('flow-inv-to-bus', invGeneratingPower > 5);
-      this.setFlowVisible('flow-bus-to-inv', acPvP > 5);
+      this.setFlowVisible('flow-inv-to-bus', false); // Tắt luồng từ Inverter sang AC Grid bus
+      this.setFlowVisible('flow-bus-to-inv', false);
     } else {
       this.setFlowVisible('flow-inv-to-bus', invGeneratingPower > 5);
       this.setFlowVisible('flow-bus-to-inv', isImporting && isCharging);
