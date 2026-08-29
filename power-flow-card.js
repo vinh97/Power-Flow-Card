@@ -61,7 +61,7 @@ class PowerFlowCard extends HTMLElement {
       this.setText('inv-lcd-time', timeFormatted);
     }
 
-    // 2. Lấy dữ liệu PV (Tự động ẩn W/V khi = 0 hoặc không có sensor, hỗ trợ PV1 - PV4)
+    // 2. Lấy dữ liệu PV
     let pvP = 0;
     let currentPvY = 14;
     const pvRowStep = 15;
@@ -129,37 +129,33 @@ class PowerFlowCard extends HTMLElement {
     const gridV = isGridConnected ? rawGridV : 0.0;
     const gridF = isGridConnected ? rawGridF : 0.0;
 
-    // 4. Logic EPS
+    // 4. Logic EPS (Ẩn cả V và Hz nếu không có sensor eps_voltage)
     const lineEpsV = this.shadowRoot.getElementById('line-eps-v');
     const lineEpsF = this.shadowRoot.getElementById('line-eps-f');
     const lblEpsSub = this.shadowRoot.getElementById('lbl-eps-sub');
     const lblEpsStandby = this.shadowRoot.getElementById('lbl-eps-standby');
 
-    const hasEpsV = ent.eps_voltage && this._hass.states[ent.eps_voltage] !== undefined;
-    const hasEpsF = ent.eps_frequency && this._hass.states[ent.eps_frequency] !== undefined;
+    const hasEpsV = Boolean(ent.eps_voltage && this._hass?.states[ent.eps_voltage] !== undefined);
+    const hasEpsF = hasEpsV && Boolean(ent.eps_frequency && this._hass?.states[ent.eps_frequency] !== undefined);
 
     this.setText('txt-eps-p', epsP);
 
-    if (hasEpsV) {
-      if (lineEpsV) lineEpsV.style.display = 'inline';
-      this.setText('txt-eps-v', this.getState(ent.eps_voltage, 0.0).toFixed(1));
-    } else if (lineEpsV) {
-      lineEpsV.style.display = 'none';
+    if (lineEpsV) {
+      lineEpsV.style.display = hasEpsV ? 'inline' : 'none';
+      if (hasEpsV) this.setText('txt-eps-v', this.getState(ent.eps_voltage, 0.0).toFixed(1));
     }
 
-    if (hasEpsF) {
-      if (lineEpsF) lineEpsF.style.display = 'inline';
-      this.setText('txt-eps-f', this.getState(ent.eps_frequency, 0.0).toFixed(2));
-    } else if (lineEpsF) {
-      lineEpsF.style.display = 'none';
+    if (lineEpsF) {
+      lineEpsF.style.display = hasEpsF ? 'inline' : 'none';
+      if (hasEpsF) this.setText('txt-eps-f', this.getState(ent.eps_frequency, 0.0).toFixed(2));
     }
 
     const showStandby = isGridConnected && (epsP === 0);
     if (lblEpsStandby) lblEpsStandby.style.display = showStandby ? 'inline' : 'none';
 
-    if (hasEpsV || hasEpsF) {
-      if (lblEpsSub) lblEpsSub.setAttribute('y', '44');
-      if (lblEpsStandby) lblEpsStandby.setAttribute('y', '54');
+    if (hasEpsV) {
+      if (lblEpsSub) lblEpsSub.setAttribute('y', hasEpsF ? '44' : '34');
+      if (lblEpsStandby) lblEpsStandby.setAttribute('y', hasEpsF ? '54' : '44');
     } else {
       if (lblEpsSub) lblEpsSub.setAttribute('y', '28');
       if (lblEpsStandby) lblEpsStandby.setAttribute('y', '38');
@@ -271,9 +267,8 @@ class PowerFlowCard extends HTMLElement {
 
     const invGeneratingPower = pvP + (isDischarging ? Math.abs(batP) : 0);
 
-    // FIX LOGIC KHI MẤT LƯỚI
     if (!isGridConnected) {
-      this.setFlowVisible('flow-inv-to-bus', false); // Tắt luồng từ Inverter sang AC Grid bus
+      this.setFlowVisible('flow-inv-to-bus', false);
       this.setFlowVisible('flow-bus-to-inv', false);
     } else {
       this.setFlowVisible('flow-inv-to-bus', invGeneratingPower > 5);
@@ -534,7 +529,7 @@ class PowerFlowCard extends HTMLElement {
 
               <circle id="ac-bus-node" cx="290" cy="105" r="6" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
 
-              <!-- Khối PV hỗ trợ PV1, PV2, PV3, PV4 tự xếp dòng & tự ẩn -->
+              <!-- Khối PV -->
               <g id="grp-pv" transform="translate(48, 2)">
                 <g id="grp-pv1">
                   <g id="line-pv1-p">
