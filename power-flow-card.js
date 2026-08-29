@@ -163,7 +163,7 @@ class PowerFlowCard extends HTMLElement {
     const gridV = isGridConnected ? rawGridV : 0.0;
     const gridF = isGridConnected ? rawGridF : 0.0;
 
-    // 6. Logic EPS Subtext / Standby
+    // 6. Logic EPS Subtext / Standby (Ẩn toàn bộ cảm biến 1 pha khi 3 pha bật)
     const lineEpsV = this.shadowRoot.getElementById('line-eps-v');
     const lineEpsF = this.shadowRoot.getElementById('line-eps-f');
     const lblEpsSub = this.shadowRoot.getElementById('lbl-eps-sub');
@@ -173,12 +173,12 @@ class PowerFlowCard extends HTMLElement {
     const hasEpsF = hasEpsV && Boolean(ent.eps_frequency && this._hass?.states[ent.eps_frequency] !== undefined);
 
     if (lineEpsV) {
-      lineEpsV.style.display = hasEpsV ? 'inline' : 'none';
+      lineEpsV.style.display = (!isThreePhase && hasEpsV) ? 'inline' : 'none';
       if (hasEpsV) this.setText('txt-eps-v', this.getState(ent.eps_voltage, 0.0).toFixed(1));
     }
 
     if (lineEpsF) {
-      lineEpsF.style.display = hasEpsF ? 'inline' : 'none';
+      lineEpsF.style.display = (!isThreePhase && hasEpsF) ? 'inline' : 'none';
       if (hasEpsF) this.setText('txt-eps-f', this.getState(ent.eps_frequency, 0.0).toFixed(2));
     }
 
@@ -487,9 +487,9 @@ class PowerFlowCard extends HTMLElement {
               </defs>
 
               <g id="flow-pv">
-                <use href="#chv-block-d" x="175" y="40" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-d" x="175" y="52" class="chv-block" style="animation-delay: 0.35s;" />
-                <use href="#chv-block-d" x="175" y="64" class="chv-block" style="animation-delay: 0.70s;" />
+                <use href="#chv-block-d" x="176" y="40" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-d" x="176" y="52" class="chv-block" style="animation-delay: 0.35s;" />
+                <use href="#chv-block-d" x="176" y="64" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
               <g id="flow-ac-pv">
@@ -500,9 +500,9 @@ class PowerFlowCard extends HTMLElement {
               </g>
 
               <g id="flow-eps">
-                <use href="#chv-block-d" x="175" y="136" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-d" x="175" y="149" class="chv-block" style="animation-delay: 0.35s;" />
-                <use href="#chv-block-d" x="175" y="162" class="chv-block" style="animation-delay: 0.70s;" />
+                <use href="#chv-block-d" x="176" y="136" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-d" x="176" y="149" class="chv-block" style="animation-delay: 0.35s;" />
+                <use href="#chv-block-d" x="176" y="162" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
               <g id="flow-bus-to-load">
@@ -700,7 +700,8 @@ class PowerFlowCard extends HTMLElement {
                 </text>
               </g>
 
-              <g id="grp-eps" transform="translate(134, 172)">
+              <!-- Đã căn chỉnh EPS thẳng hàng tuyệt đối theo tâm Inverter (X = 181) -->
+              <g id="grp-eps" transform="translate(165, 172)">
                 <svg width="32" height="32" viewBox="0 0 30 30">
                   <rect x="3" y="7" width="18" height="16" rx="2" fill="none" stroke="#16a34a" stroke-width="2.8"/>
                   <path d="M8 1V7 M16 1V7 M12 23V29" stroke="#16a34a" stroke-width="2.8"/>
