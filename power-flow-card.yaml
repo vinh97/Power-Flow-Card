@@ -1,38 +1,64 @@
 type: custom:power-flow-card
-always_show_ac_pv: false # PV Hòa Lưới / Máy phát: true = luôn hiện, false = tự ẩn
-invert_battery_power: false # Bật 'true' nếu công suất Pin bị ngược dấu (xả ra số dương, sạc vào số âm)
-invert_grid_power: false # Bật 'true' nếu công suất Lưới bị ngược dấu (mua lưới ra số âm, bán lưới ra số dương)
+
+# --- Cấu hình tùy chọn hệ thống ---
+three_phase: false           # Đặt true nếu dùng hệ thống 3 pha
+invert_battery_power: false  # Đặt true nếu công suất pin bị ngược dấu
+invert_grid_power: false     # Đặt true nếu công suất lưới bị ngược dấu
+always_show_ac_pv: false     # Đặt true nếu luôn muốn hiển thị khung AC PV / Máy phát
+
 entities:
-  # PV (Quang điện) - Tự động ẩn nếu sensor không khả dụng hoặc công suất/điện áp = 0
+  # --- Điện mặt trời (DC PV) ---
   pv1_power: sensor.pv1_power
   pv1_voltage: sensor.pv1_voltage
   pv2_power: sensor.pv2_power
   pv2_voltage: sensor.pv2_voltage
-  pv3_power: sensor.pv3_power
-  pv3_voltage: sensor.pv3_voltage
-  pv4_power: sensor.pv4_power
-  pv4_voltage: sensor.pv4_voltage
+  pv3_power: sensor.inverter_pv3_power
+  pv3_voltage: sensor.inverter_pv3_voltage
+  pv4_power: sensor.inverter_pv4_power
+  pv4_voltage: sensor.inverter_pv4_voltage
 
-  # PV Hòa Lưới / Máy phát (- Tự động ẩn nếu sensor không khả dụng hoặc công suất/điện áp = 0)  
+  # --- Điện mặt trời AC / Máy phát điện (AC PV) ---
   ac_pv_power: sensor.ac_pv_power
   ac_pv_voltage: sensor.ac_pv_voltage
   ac_pv_frequency: sensor.ac_pv_frequency
-
-  # --- Tải tiêu thụ & Dự phòng (EPS) ---
-  load_power: sensor.load_power
-  eps_power: sensor.eps_power
-  eps_voltage: sensor.eps_voltage
-  eps_frequency: sensor.eps_frequency
+  # Nếu dùng 3 pha cho AC PV:
+  ac_pv_power_l1: sensor.ac_pv_power_l1
+  ac_pv_power_l2: sensor.ac_pv_power_l2
+  ac_pv_power_l3: sensor.ac_pv_power_l3
 
   # --- Pin lưu trữ (Battery) ---
   battery_power: sensor.lux_battery_flow_live
   battery_voltage: sensor.battery_voltage
   battery_soc: sensor.battery_soc
 
-  # --- Điện lưới EVN (Grid) ---
+  # --- Tải tiêu thụ (Load) ---
+  load_power: sensor.inverter_power
+  Nếu dùng 3 pha cho Tải tiêu thụ:
+  load_power_l1: sensor.inverter_load_power_l1
+  load_power_l2: sensor.inverter_load_power_l2
+  load_power_l3: sensor.inverter_load_power_l3
+
+  # --- Cổng dự phòng (EPS / Backup) ---
+  eps_power: sensor.eps_power
+  eps_voltage: sensor.eps_voltage
+  eps_frequency: sensor.eps_frequency
+  # Nếu dùng 3 pha cho EPS:
+  eps_power_l1: sensor.inverter_eps_power_l1
+  eps_power_l2: sensor.inverter_eps_power_l2
+  eps_power_l3: sensor.inverter_eps_power_l3
+
+  # --- Điện lưới (Grid) ---
   grid_power: sensor.lux_grid_flow_live
   grid_voltage: sensor.grid_voltage
   grid_frequency: sensor.grid_frequency
+  # Nếu dùng 3 pha cho Lưới:
+  grid_power_l1: sensor.inverter_grid_power_l1
+  grid_power_l2: sensor.inverter_grid_power_l2
+  grid_power_l3: sensor.inverter_grid_power_l3
+  grid_voltage_l1: sensor.inverter_grid_voltage_l1
+  grid_frequency_l1: sensor.inverter_grid_frequency_l1
+
+  # --- Thống kê sản lượng & tiêu thụ (kWh) ---
 
   # --- Thống kê Sản lượng PV ---
   pv_daily: sensor.lux_solar_output_daily
