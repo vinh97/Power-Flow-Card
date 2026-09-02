@@ -41,11 +41,18 @@ class PowerFlowCard extends HTMLElement {
     const absNum = Math.abs(num);
     const unitEl = el.nextElementSibling;
     
-    if (absNum > 10000) {
-      el.textContent = (num / 1000).toFixed(2);
+    if (absNum >= 9999) {
+      const kw = num / 1000;
+      const absKw = Math.abs(kw);
+      let formatted = '';
+      if (absKw >= 1000) formatted = kw.toFixed(0);
+      else if (absKw >= 100) formatted = kw.toFixed(1);
+      else formatted = kw.toFixed(2);
+      
+      el.textContent = formatted;
       if (unitEl) unitEl.textContent = ' kW';
     } else {
-      el.textContent = num;
+      el.textContent = Math.round(num);
       if (unitEl) unitEl.textContent = ' W';
     }
   }
@@ -54,11 +61,25 @@ class PowerFlowCard extends HTMLElement {
     const el = this.getEl(id);
     if (!el) return;
     const num = Number(val) || 0;
-    if (Math.abs(num) >= 1000) {
-      el.innerHTML = `${(num / 1000).toFixed(2)} <span class="unit">MWh</span>`;
+    const absNum = Math.abs(num);
+
+    let formatted = '';
+    let unit = 'kWh';
+
+    if (absNum >= 1000) {
+      const mwh = num / 1000;
+      const absMwh = Math.abs(mwh);
+      if (absMwh >= 1000) formatted = mwh.toFixed(0);
+      else if (absMwh >= 100) formatted = mwh.toFixed(1);
+      else formatted = mwh.toFixed(2);
+      unit = 'MWh';
     } else {
-      el.innerHTML = `${num.toFixed(2)} <span class="unit">kWh</span>`;
+      if (absNum >= 100) formatted = num.toFixed(1);
+      else formatted = num.toFixed(2);
+      unit = 'kWh';
     }
+
+    el.innerHTML = `${formatted} <span class="unit">${unit}</span>`;
   }
 
   getState(entityId, defaultVal = 0) {
@@ -857,7 +878,7 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-l" x="80"  y="98" class="chv-block" style="animation-delay: 0.75s;" />
               </g>
 
-              <!-- Luồng Pin 2 Xả (Nâng lên 5 mũi tên hướng Dưới -> Trên: y = 162, 150, 138, 126, 114) -->
+              <!-- Luồng Pin 2 Xả -->
               <g id="flow-bat2-discharge">
                 <use href="#chv-block-r" x="80"  y="174" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-r" x="94"  y="174" class="chv-block" style="animation-delay: 0.18s;" />
@@ -868,7 +889,7 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-u" x="108" y="114" class="chv-block" style="animation-delay: 1.08s;" />
               </g>
 
-              <!-- Luồng Pin 2 Sạc (Nâng lên 5 mũi tên hướng Trên -> Dưới: y = 114, 126, 138, 150, 162) -->
+              <!-- Luồng Pin 2 Sạc -->
               <g id="flow-bat2-charge">
                 <use href="#chv-block-d" x="108" y="114" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-d" x="108" y="126" class="chv-block" style="animation-delay: 0.18s;" />
