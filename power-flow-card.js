@@ -438,7 +438,6 @@ class PowerFlowCard extends HTMLElement {
       }
     }
 
-    // Cập nhật màu động cho icon tải tiêu thụ (fill & stroke)
     const loadIconColor = isGridConnected ? '#52b788' : (hasLoadPower ? '#e11d48' : '#94a3b8');
     const loadIcons = this.shadowRoot.querySelectorAll('#icon-load .load-icon-color');
     loadIcons.forEach(icon => icon.setAttribute('fill', loadIconColor));
@@ -528,13 +527,13 @@ class PowerFlowCard extends HTMLElement {
         .stat-card { background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
         .card-header { padding: 4px 6px; font-size: 11px; color: #ffffff; font-weight: 800; white-space: nowrap; letter-spacing: 0.2px; }
         .bg-pv { background: #0284c7; } .bg-bat { background: #16a34a; } .bg-grid { background: #d97706; } .bg-load { background: #e11d48; } 
-        .card-body { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; gap: 2px; }
+        .card-body { display: flex; justify-content: space-between; align-items: center; padding: 5px 3px; gap: 2px; }
         .stat-dual-wrap { display: flex; gap: 2px; flex: 1; min-width: 0; }
         .stat-dual-wrap > div { flex: 1; min-width: 0; }
-        .stat-val { font-size: 11px; font-weight: 800; color: #0f172a; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .unit { font-size: 8px; font-weight: 600; color: #475569; }
-        .stat-lbl { font-size: 7.5px; color: #64748b; margin-bottom: 2px; text-transform: uppercase; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .stat-icon { flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+        .stat-val { font-size: 9.5px; font-weight: 800; color: #0f172a; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .unit { font-size: 7.5px; font-weight: 600; color: #475569; }
+        .stat-lbl { font-size: 6.8px; color: #64748b; margin-bottom: 1px; text-transform: uppercase; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stat-icon { flex-shrink: 0; width: 20px; height: 24px; display: flex; align-items: center; justify-content: center; }
         .diagram-card { background: #ffffff; padding: 8px 4px 6px 4px; border-radius: 10px; border: 1px solid #e2e8f0; position: relative; }
         .status-pill { position: absolute; right: 8px; top: 8px; width: fit-content; white-space: nowrap; background: #f8fafc; color: #334155; font-size: 9px; padding: 3px 8px; border-radius: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; z-index: 10; pointer-events: none; border: 1px solid #e2e8f0; }
         .status-dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -561,11 +560,11 @@ class PowerFlowCard extends HTMLElement {
                 <div style="flex:1; min-width:0;">
                   <div class="stat-val"><span id="stat-pv-today">0.00</span> <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Hôm nay</div>
-                  <div class="stat-val" style="margin-top:2px;"><span id="stat-pv-total">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" style="margin-top:1px;"><span id="stat-pv-total">0.00</span> <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Tổng cộng</div>
                 </div>
                 <div class="stat-icon">
-                  <svg width="28" height="28" viewBox="0 0 100 100">
+                  <svg width="22" height="24" viewBox="0 0 100 100">
                     <g stroke="#52b788" stroke-width="4.5" stroke-linecap="round" fill="none">
                       <circle cx="34" cy="34" r="14" />
                       <line x1="34" y1="12" x2="34" y2="5" />
@@ -595,11 +594,11 @@ class PowerFlowCard extends HTMLElement {
                 <div style="flex:1; min-width:0;">
                   <div class="stat-val"><span id="stat-load-today">0.00</span> <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Hôm nay</div>
-                  <div class="stat-val" style="margin-top:2px;"><span id="stat-load-total">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" style="margin-top:1px;"><span id="stat-load-total">0.00</span> <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Tổng cộng</div>
                 </div>
                 <div class="stat-icon">
-                  <svg width="26" height="26" viewBox="0 0 100 100">
+                  <svg width="20" height="22" viewBox="0 0 100 100">
                     <rect x="27" y="14" width="10" height="20" rx="1" fill="#52b788"/>
                     <path d="M 10 50 L 50 21 L 90 50" fill="none" stroke="#52b788" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M 50 29.5 L 82 52.5 L 82 85 C 82 86.5 80.5 88 79 88 L 21 88 C 19.5 88 18 86.5 18 85 L 18 52.5 Z" fill="#52b788"/>
@@ -616,18 +615,18 @@ class PowerFlowCard extends HTMLElement {
                   <div>
                     <div class="stat-val"><span id="stat-bat-c-today">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Sạc hôm nay</div>
-                    <div class="stat-val" style="margin-top:2px;"><span id="stat-bat-c-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" style="margin-top:1px;"><span id="stat-bat-c-total">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng sạc</div>
                   </div>
                   <div>
                     <div class="stat-val"><span id="stat-bat-d-today">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Xả hôm nay</div>
-                    <div class="stat-val" style="margin-top:2px;"><span id="stat-bat-d-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" style="margin-top:1px;"><span id="stat-bat-d-total">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng xả</div>
                   </div>
                 </div>
                 <div class="stat-icon">
-                  <svg width="24" height="28" viewBox="0 0 30 40">
+                  <svg width="18" height="22" viewBox="0 0 30 40">
                     <rect x="5" y="6" width="20" height="30" rx="3" fill="#52b788"/>
                     <rect x="11" y="2" width="8" height="4" rx="1" fill="#52b788"/>
                     <path d="M16 12L10 21H15L14 28L20 19H15Z" fill="#ffffff"/>
@@ -643,18 +642,18 @@ class PowerFlowCard extends HTMLElement {
                   <div>
                     <div class="stat-val"><span id="stat-grid-b-today">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Mua hôm nay</div>
-                    <div class="stat-val" style="margin-top:2px;"><span id="stat-grid-b-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" style="margin-top:1px;"><span id="stat-grid-b-total">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng mua</div>
                   </div>
                   <div>
                     <div class="stat-val"><span id="stat-grid-s-today">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Bán hôm nay</div>
-                    <div class="stat-val" style="margin-top:2px;"><span id="stat-grid-s-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" style="margin-top:1px;"><span id="stat-grid-s-total">0.00</span> <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng bán</div>
                   </div>
                 </div>
                 <div class="stat-icon">
-                  <svg width="24" height="28" viewBox="0 0 100 160">
+                  <svg width="18" height="22" viewBox="0 0 100 160">
                     <g fill="none" stroke="#50b984" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M 50,6 L 18,152 M 50,6 L 82,152" stroke-width="7" />
                       <path d="M 22,42 L 78,42" stroke-width="7" />
@@ -729,17 +728,15 @@ class PowerFlowCard extends HTMLElement {
               </g>
 
               <g id="flow-bat-discharge">
-                <use href="#chv-block-r" x="82"  y="98" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-r" x="96"  y="98" class="chv-block" style="animation-delay: 0.25s;" />
-                <use href="#chv-block-r" x="110" y="98" class="chv-block" style="animation-delay: 0.50s;" />
-                <use href="#chv-block-r" x="124" y="98" class="chv-block" style="animation-delay: 0.75s;" />
+                <use href="#chv-block-r" x="98"  y="98" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-r" x="111" y="98" class="chv-block" style="animation-delay: 0.35s;" />
+                <use href="#chv-block-r" x="124" y="98" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
               <g id="flow-bat-charge">
                 <use href="#chv-block-l" x="124" y="98" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-l" x="110" y="98" class="chv-block" style="animation-delay: 0.25s;" />
-                <use href="#chv-block-l" x="96"  y="98" class="chv-block" style="animation-delay: 0.50s;" />
-                <use href="#chv-block-l" x="82"  y="98" class="chv-block" style="animation-delay: 0.75s;" />
+                <use href="#chv-block-l" x="111" y="98" class="chv-block" style="animation-delay: 0.35s;" />
+                <use href="#chv-block-l" x="98"  y="98" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
               <g id="flow-inv-to-bus">
@@ -839,8 +836,8 @@ class PowerFlowCard extends HTMLElement {
                 </g>
               </g>
 
-              <!-- Khối 3: Pin Lưu Trữ -->
-              <g transform="translate(50, 72)">
+              <!-- Khối 3: Pin Lưu Trữ (Đã dịch sang translate(64, 72)) -->
+              <g transform="translate(64, 72)">
                 <rect x="11" y="1" width="10" height="4" rx="1.5" fill="#16a34a"/>
                 <rect x="2" y="5" width="28" height="48" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
                 <rect id="bat-fill" x="4" y="7" width="24" height="43" rx="1.5" fill="#16a34a"/>
