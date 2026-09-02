@@ -24,7 +24,7 @@ Thẻ Lovelace tùy chỉnh hiển thị sơ đồ luồng năng lượng và th
 
 ## ⚙️ Cài đặt Thủ công (Manual)
 
-     1. Copy thư mục `inverter-hybrid-card` về và đặt vào thư mục `/config/www/community/` trong Home Assistant.
+     1. Copy thư mục `power-flow-card` về và đặt vào thư mục `/config/www/community/` trong Home Assistant.
      2. Thêm vào `resources` thông qua UI
      Thêm qua UI
 
