@@ -158,8 +158,8 @@ class PowerFlowCard extends HTMLElement {
       });
     }
 
-    // 3. PV Hòa Lưới / AC PV
-    const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(ent?.always_show_ac_pv);
+    // 3. PV Hòa Lưới / AC PV (Khối ô xxxA)
+    const alwaysShowAcPv = isTrue(this.config?.always_show_ac_pv) || isTrue(this.config?.show_ac_pv) || isTrue(ent?.always_show_ac_pv);
     let acPvP = 0;
 
     if (isThreePhase) {
@@ -186,6 +186,7 @@ class PowerFlowCard extends HTMLElement {
     const hasAcPvV = Boolean(ent.ac_pv_voltage && this._hass?.states[ent.ac_pv_voltage] !== undefined);
     const hasAcPvF = hasAcPvV && Boolean(ent.ac_pv_frequency && this._hass?.states[ent.ac_pv_frequency] !== undefined);
 
+    // Logic tự ẩn / hiện khối PV Hòa Lưới
     this.setDisplay('grp-pv-ac', alwaysShowAcPv || hasAcPvP);
 
     const showAcPvV = hasAcPvV && acPvV > 0;
@@ -376,7 +377,7 @@ class PowerFlowCard extends HTMLElement {
     const showStandby = isGridConnected && (epsP === 0);
     this.setDisplay('lbl-eps-standby', showStandby);
 
-    // 7. Pin Lưu Trữ
+    // 7.1 Pin Lưu Trữ Chính (Pin 1)
     let batP = Math.round(this.getState(ent.battery_power, 0));
     const batV = this.getState(ent.battery_voltage, 0);
     const soc = Math.round(this.getState(ent.battery_soc, 0));
@@ -430,7 +431,71 @@ class PowerFlowCard extends HTMLElement {
     if (txtSoc) txtSoc.setAttribute('fill', batColor);
     if (batFill) batFill.setAttribute('fill', batColor);
 
-    // 8. Thống kê năng lượng dạng kWh / MWh (Tự động chuyển đổi nếu >= 1000 kWh)
+    // 7.2 Pin Lưu Trữ Phụ Thứ 2 (Bat 2)
+    const hasBat2Entities = Boolean(
+      (ent.battery2_power || ent.battery2_soc || ent.battery2_voltage) &&
+      (this._hass?.states[ent.battery2_power] !== undefined || this._hass?.states[ent.battery2_soc] !== undefined)
+    );
+    const alwaysShowBat2 = isTrue(this.config?.always_show_battery2) || isTrue(ent?.always_show_battery2);
+    const showBat2 = alwaysShowBat2 || hasBat2Entities;
+
+    this.setDisplay('grp-bat2', showBat2);
+
+    if (showBat2) {
+      let bat2P = Math.round(this.getState(ent.battery2_power, 0));
+      const bat2V = this.getState(ent.battery2_voltage, 0);
+      const soc2 = Math.round(this.getState(ent.battery2_soc, 0));
+
+      const invertBat2 = isTrue(this.config?.invert_battery2_power) || isTrue(ent?.invert_battery2_power);
+      if (invertBat2) bat2P = -bat2P;
+
+      const isCharging2 = bat2P > 5;
+      const isDischarging2 = bat2P < -5;
+
+      this.setPower('txt-bat2-p', Math.abs(bat2P));
+      this.setText('txt-bat2-v', bat2V.toFixed(1));
+
+      const lblBat2Mode = this.getEl('lbl-bat2-mode');
+      if (lblBat2Mode) {
+        if (isCharging2) lblBat2Mode.textContent = "Đang sạc";
+        else if (isDischarging2) lblBat2Mode.textContent = "Đang xả";
+        else {
+          if (soc2 >= 100) lblBat2Mode.textContent = "Pin đầy";
+          else if (soc2 >= 20) lblBat2Mode.textContent = "Chờ sạc / xả";
+          else lblBat2Mode.textContent = "Pin yếu";
+        }
+      }
+
+      const showBat2V = bat2V > 0;
+      this.setDisplay('line-bat2-v', showBat2V);
+
+      const bat2Elements = [
+        this.getEl('line-bat2-p'),
+        this.getEl('lbl-bat2-mode'),
+        ...(showBat2V ? [this.getEl('line-bat2-v')] : []),
+        this.getEl('line-bat2-soc')
+      ];
+
+      this.alignTextStack(bat2Elements, 29, 12, 3.5);
+
+      const bat2Fill = this.getEl('bat2-fill');
+      const h2 = Math.max(1, (soc2 / 100) * maxH);
+      if (bat2Fill) {
+        bat2Fill.setAttribute('height', h2);
+        bat2Fill.setAttribute('y', 7 + (maxH - h2));
+      }
+
+      let bat2Color = '#16a34a';
+      if (soc2 <= 20) bat2Color = '#dc2626';
+      else if (soc2 <= 40) bat2Color = '#ea580c';
+
+      this.setText('txt-soc2-val', soc2);
+      const txtSoc2 = this.getEl('txt-soc2-val');
+      if (txtSoc2) txtSoc2.setAttribute('fill', bat2Color);
+      if (bat2Fill) bat2Fill.setAttribute('fill', bat2Color);
+    }
+
+    // 8. Thống kê năng lượng
     this.setEnergyStat('stat-pv-today', this.getState(ent.pv_daily));
     this.setEnergyStat('stat-pv-total', this.getState(ent.pv_total));
     this.setEnergyStat('stat-load-today', this.getState(ent.load_daily));
@@ -837,7 +902,7 @@ class PowerFlowCard extends HTMLElement {
                 </g>
               </g>
 
-              <!-- Khối 2: PV Hòa Lưới -->
+              <!-- Khối 2: PV Hòa Lưới / AC PV (Ô xxxA) -->
               <g id="grp-pv-ac">
                 <text id="line-ac-pv-1p" x="315" y="0" text-anchor="start"><tspan id="txt-ac-pv-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
                 <text id="line-ac-pv-l1" x="315" y="0" text-anchor="start" style="display:none;"><tspan id="txt-ac-pv-l1" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
@@ -863,8 +928,8 @@ class PowerFlowCard extends HTMLElement {
                 </g>
               </g>
 
-              <!-- Khối 3: Pin Lưu Trữ -->
-              <g transform="translate(64, 72)">
+              <!-- Khối 3.1: Pin Lưu Trữ 1 -->
+              <g id="grp-bat1" transform="translate(64, 72)">
                 <rect x="11" y="1" width="10" height="4" rx="1.5" fill="#16a34a"/>
                 <rect x="2" y="5" width="28" height="48" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
                 <rect id="bat-fill" x="4" y="7" width="24" height="43" rx="1.5" fill="#16a34a"/>
@@ -873,6 +938,18 @@ class PowerFlowCard extends HTMLElement {
                 <text id="lbl-bat-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Chờ sạc / xả</text>
                 <text id="line-bat-v" x="-8" y="0" text-anchor="end"><tspan id="txt-bat-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="3"> V</tspan></text>
                 <text id="line-bat-soc" x="-8" y="0" text-anchor="end"><tspan id="txt-soc-val" font-size="13px" font-weight="bold" fill="#16a34a">0</tspan><tspan class="unit-lbl" dx="1" fill="#16a34a">%</tspan></text>
+              </g>
+
+              <!-- Khối 3.2: Pin Lưu Trữ 2 (Vị trí ô đỏ Bat 2) -->
+              <g id="grp-bat2" transform="translate(64, 148)" style="display: none;">
+                <rect x="11" y="1" width="10" height="4" rx="1.5" fill="#16a34a"/>
+                <rect x="2" y="5" width="28" height="48" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+                <rect id="bat2-fill" x="4" y="7" width="24" height="43" rx="1.5" fill="#16a34a"/>
+
+                <text id="line-bat2-p" x="-8" y="0" text-anchor="end"><tspan id="txt-bat2-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
+                <text id="lbl-bat2-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Chờ sạc / xả</text>
+                <text id="line-bat2-v" x="-8" y="0" text-anchor="end"><tspan id="txt-bat2-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="3"> V</tspan></text>
+                <text id="line-bat2-soc" x="-8" y="0" text-anchor="end"><tspan id="txt-soc2-val" font-size="13px" font-weight="bold" fill="#16a34a">0</tspan><tspan class="unit-lbl" dx="1" fill="#16a34a">%</tspan></text>
               </g>
 
               <!-- Khối 4: Inverter trung tâm -->
