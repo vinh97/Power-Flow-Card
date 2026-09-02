@@ -34,6 +34,33 @@ class PowerFlowCard extends HTMLElement {
     if (el) el.textContent = text;
   }
 
+  setPower(id, val) {
+    const el = this.getEl(id);
+    if (!el) return;
+    const num = Number(val) || 0;
+    const absNum = Math.abs(num);
+    const unitEl = el.nextElementSibling;
+    
+    if (absNum > 10000) {
+      el.textContent = (num / 1000).toFixed(2);
+      if (unitEl) unitEl.textContent = ' kW';
+    } else {
+      el.textContent = num;
+      if (unitEl) unitEl.textContent = ' W';
+    }
+  }
+
+  setEnergyStat(id, val) {
+    const el = this.getEl(id);
+    if (!el) return;
+    const num = Number(val) || 0;
+    if (Math.abs(num) >= 1000) {
+      el.innerHTML = `${(num / 1000).toFixed(2)} <span class="unit">MWh</span>`;
+    } else {
+      el.innerHTML = `${num.toFixed(2)} <span class="unit">kWh</span>`;
+    }
+  }
+
   getState(entityId, defaultVal = 0) {
     if (!entityId || !this._hass || !this._hass.states[entityId]) return defaultVal;
     const val = parseFloat(this._hass.states[entityId].state);
@@ -109,7 +136,7 @@ class PowerFlowCard extends HTMLElement {
       this.setDisplay(`line-pv${i}-p`, showP);
       this.setDisplay(`line-pv${i}-v`, showV);
 
-      if (showP) this.setText(`txt-pv${i}-p`, pVal);
+      if (showP) this.setPower(`txt-pv${i}-p`, pVal);
       if (showV) this.setText(`txt-pv${i}-v`, vVal.toFixed(1));
 
       const grp = this.getEl(`grp-pv${i}`);
@@ -144,12 +171,12 @@ class PowerFlowCard extends HTMLElement {
         ? (acPvL1 + acPvL2 + acPvL3)
         : Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
 
-      this.setText('txt-ac-pv-l1', acPvL1);
-      this.setText('txt-ac-pv-l2', acPvL2);
-      this.setText('txt-ac-pv-l3', acPvL3);
+      this.setPower('txt-ac-pv-l1', acPvL1);
+      this.setPower('txt-ac-pv-l2', acPvL2);
+      this.setPower('txt-ac-pv-l3', acPvL3);
     } else {
       acPvP = Math.abs(Math.round(this.getState(ent.ac_pv_power, 0)));
-      this.setText('txt-ac-pv-p', acPvP);
+      this.setPower('txt-ac-pv-p', acPvP);
     }
 
     const acPvV = this.getState(ent.ac_pv_voltage, 0.0);
@@ -200,9 +227,9 @@ class PowerFlowCard extends HTMLElement {
       const gridL2 = Math.round(this.getState(ent.grid_power_l2, 0));
       const gridL3 = Math.round(this.getState(ent.grid_power_l3, 0));
 
-      this.setText('txt-grid-l1', gridL1);
-      this.setText('txt-grid-l2', gridL2);
-      this.setText('txt-grid-l3', gridL3);
+      this.setPower('txt-grid-l1', gridL1);
+      this.setPower('txt-grid-l2', gridL2);
+      this.setPower('txt-grid-l3', gridL3);
 
       gridP = (ent.grid_power_l1 || ent.grid_power_l2 || ent.grid_power_l3)
         ? (gridL1 + gridL2 + gridL3)
@@ -214,7 +241,7 @@ class PowerFlowCard extends HTMLElement {
       gridP = Math.round(this.getState(ent.grid_power, 0));
       rawGridV = this.getState(ent.grid_voltage, 0.0);
       rawGridF = this.getState(ent.grid_frequency, 0.0);
-      this.setText('txt-grid-p', Math.abs(gridP));
+      this.setPower('txt-grid-p', Math.abs(gridP));
     }
 
     const invertGrid = isTrue(this.config?.invert_grid_power) || isTrue(ent?.invert_grid_power);
@@ -266,12 +293,12 @@ class PowerFlowCard extends HTMLElement {
         ? (loadL1 + loadL2 + loadL3)
         : Math.abs(Math.round(this.getState(ent.load_power, 0)));
 
-      this.setText('txt-load-l1', loadL1);
-      this.setText('txt-load-l2', loadL2);
-      this.setText('txt-load-l3', loadL3);
+      this.setPower('txt-load-l1', loadL1);
+      this.setPower('txt-load-l2', loadL2);
+      this.setPower('txt-load-l3', loadL3);
     } else {
       loadP = Math.abs(Math.round(this.getState(ent.load_power, 0)));
-      this.setText('txt-load-p', loadP);
+      this.setPower('txt-load-p', loadP);
     }
 
     const loadElements = [];
@@ -303,12 +330,12 @@ class PowerFlowCard extends HTMLElement {
         ? (epsL1 + epsL2 + epsL3)
         : Math.abs(Math.round(this.getState(ent.eps_power, 0)));
 
-      this.setText('txt-eps-l1', epsL1);
-      this.setText('txt-eps-l2', epsL2);
-      this.setText('txt-eps-l3', epsL3);
+      this.setPower('txt-eps-l1', epsL1);
+      this.setPower('txt-eps-l2', epsL2);
+      this.setPower('txt-eps-l3', epsL3);
     } else {
       epsP = Math.abs(Math.round(this.getState(ent.eps_power, 0)));
-      this.setText('txt-eps-p', epsP);
+      this.setPower('txt-eps-p', epsP);
     }
 
     const hasEpsV = Boolean(ent.eps_voltage && this._hass?.states[ent.eps_voltage] !== undefined);
@@ -360,7 +387,7 @@ class PowerFlowCard extends HTMLElement {
     const isCharging = batP > 5;
     const isDischarging = batP < -5;
 
-    this.setText('txt-bat-p', Math.abs(batP));
+    this.setPower('txt-bat-p', Math.abs(batP));
     this.setText('txt-bat-v', batV.toFixed(1));
 
     const lblBatMode = this.getEl('lbl-bat-mode');
@@ -403,21 +430,21 @@ class PowerFlowCard extends HTMLElement {
     if (txtSoc) txtSoc.setAttribute('fill', batColor);
     if (batFill) batFill.setAttribute('fill', batColor);
 
-    // 8. Thống kê năng lượng dạng kWh
-    this.setText('stat-pv-today', this.getState(ent.pv_daily).toFixed(2));
-    this.setText('stat-pv-total', this.getState(ent.pv_total).toFixed(2));
-    this.setText('stat-load-today', this.getState(ent.load_daily).toFixed(2));
-    this.setText('stat-load-total', this.getState(ent.load_total).toFixed(2));
+    // 8. Thống kê năng lượng dạng kWh / MWh (Tự động chuyển đổi nếu >= 1000 kWh)
+    this.setEnergyStat('stat-pv-today', this.getState(ent.pv_daily));
+    this.setEnergyStat('stat-pv-total', this.getState(ent.pv_total));
+    this.setEnergyStat('stat-load-today', this.getState(ent.load_daily));
+    this.setEnergyStat('stat-load-total', this.getState(ent.load_total));
 
-    this.setText('stat-bat-c-today', this.getState(ent.battery_charge_daily).toFixed(2));
-    this.setText('stat-bat-c-total', this.getState(ent.battery_charge_total).toFixed(2));
-    this.setText('stat-bat-d-today', this.getState(ent.battery_discharge_daily).toFixed(2));
-    this.setText('stat-bat-d-total', this.getState(ent.battery_discharge_total).toFixed(2));
+    this.setEnergyStat('stat-bat-c-today', this.getState(ent.battery_charge_daily));
+    this.setEnergyStat('stat-bat-c-total', this.getState(ent.battery_charge_total));
+    this.setEnergyStat('stat-bat-d-today', this.getState(ent.battery_discharge_daily));
+    this.setEnergyStat('stat-bat-d-total', this.getState(ent.battery_discharge_total));
 
-    this.setText('stat-grid-b-today', this.getState(ent.grid_buy_daily).toFixed(2));
-    this.setText('stat-grid-b-total', this.getState(ent.grid_buy_total).toFixed(2));
-    this.setText('stat-grid-s-today', this.getState(ent.grid_sell_daily).toFixed(2));
-    this.setText('stat-grid-s-total', this.getState(ent.grid_sell_total).toFixed(2));
+    this.setEnergyStat('stat-grid-b-today', this.getState(ent.grid_buy_daily));
+    this.setEnergyStat('stat-grid-b-total', this.getState(ent.grid_buy_total));
+    this.setEnergyStat('stat-grid-s-today', this.getState(ent.grid_sell_daily));
+    this.setEnergyStat('stat-grid-s-total', this.getState(ent.grid_sell_total));
 
     // 9. Luồng Năng Lượng
     const isImporting = isGridConnected && gridP < -5;
@@ -558,9 +585,9 @@ class PowerFlowCard extends HTMLElement {
               <div class="card-header bg-pv">Sản lượng PV</div>
               <div class="card-body">
                 <div style="flex:1; min-width:0;">
-                  <div class="stat-val"><span id="stat-pv-today">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" id="stat-pv-today">0.00 <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Hôm nay</div>
-                  <div class="stat-val" style="margin-top:1px;"><span id="stat-pv-total">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" id="stat-pv-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Tổng cộng</div>
                 </div>
                 <div class="stat-icon">
@@ -592,9 +619,9 @@ class PowerFlowCard extends HTMLElement {
               <div class="card-header bg-load">Tải tiêu thụ</div>
               <div class="card-body">
                 <div style="flex:1; min-width:0;">
-                  <div class="stat-val"><span id="stat-load-today">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" id="stat-load-today">0.00 <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Hôm nay</div>
-                  <div class="stat-val" style="margin-top:1px;"><span id="stat-load-total">0.00</span> <span class="unit">kWh</span></div>
+                  <div class="stat-val" id="stat-load-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                   <div class="stat-lbl">Tổng cộng</div>
                 </div>
                 <div class="stat-icon">
@@ -613,15 +640,15 @@ class PowerFlowCard extends HTMLElement {
               <div class="card-body">
                 <div class="stat-dual-wrap">
                   <div>
-                    <div class="stat-val"><span id="stat-bat-c-today">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-bat-c-today">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Sạc hôm nay</div>
-                    <div class="stat-val" style="margin-top:1px;"><span id="stat-bat-c-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-bat-c-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng sạc</div>
                   </div>
                   <div>
-                    <div class="stat-val"><span id="stat-bat-d-today">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-bat-d-today">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Xả hôm nay</div>
-                    <div class="stat-val" style="margin-top:1px;"><span id="stat-bat-d-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-bat-d-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng xả</div>
                   </div>
                 </div>
@@ -640,15 +667,15 @@ class PowerFlowCard extends HTMLElement {
               <div class="card-body">
                 <div class="stat-dual-wrap">
                   <div>
-                    <div class="stat-val"><span id="stat-grid-b-today">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-grid-b-today">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Mua hôm nay</div>
-                    <div class="stat-val" style="margin-top:1px;"><span id="stat-grid-b-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-grid-b-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng mua</div>
                   </div>
                   <div>
-                    <div class="stat-val"><span id="stat-grid-s-today">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-grid-s-today">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Bán hôm nay</div>
-                    <div class="stat-val" style="margin-top:1px;"><span id="stat-grid-s-total">0.00</span> <span class="unit">kWh</span></div>
+                    <div class="stat-val" id="stat-grid-s-total" style="margin-top:1px;">0.00 <span class="unit">kWh</span></div>
                     <div class="stat-lbl">Tổng bán</div>
                   </div>
                 </div>
@@ -836,7 +863,7 @@ class PowerFlowCard extends HTMLElement {
                 </g>
               </g>
 
-              <!-- Khối 3: Pin Lưu Trữ (Đã dịch sang translate(64, 72)) -->
+              <!-- Khối 3: Pin Lưu Trữ -->
               <g transform="translate(64, 72)">
                 <rect x="11" y="1" width="10" height="4" rx="1.5" fill="#16a34a"/>
                 <rect x="2" y="5" width="28" height="48" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
