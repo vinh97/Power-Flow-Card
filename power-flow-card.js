@@ -109,7 +109,7 @@ class PowerFlowCard extends HTMLElement {
     const ent = this.config.entities;
     const isTrue = (val) => val === true || String(val).toLowerCase() === 'true';
 
-    // 0. Chế độ 1 Pha hay 3 Pha
+    // 0. Bật chế độ 3 pha nếu được cấu hình hoặc phát hiện entity 3 pha
     const configThreePhase = this.config?.three_phase ?? ent?.three_phase;
     const isThreePhase = configThreePhase !== undefined
       ? isTrue(configThreePhase)
@@ -175,6 +175,10 @@ class PowerFlowCard extends HTMLElement {
         }
       }
     });
+
+    if (pvP === 0 && ent.pv_power && this._hass?.states[ent.pv_power] !== undefined) {
+      pvP = Math.abs(Math.round(this.getState(ent.pv_power, 0)));
+    }
 
     const pvNumLines = activePvGroups.length;
     if (pvNumLines > 0) {
@@ -273,7 +277,8 @@ class PowerFlowCard extends HTMLElement {
     const invertGrid = isTrue(this.config?.invert_grid_power) || isTrue(ent?.invert_grid_power);
     if (invertGrid) gridP = -gridP;
 
-    const isGridConnected = rawGridV > 50;
+    const hasGridVoltConfig = Boolean(ent.grid_voltage || ent.grid_voltage_l1);
+    const isGridConnected = hasGridVoltConfig ? (rawGridV > 50) : true;
     const gridV = isGridConnected ? rawGridV : 0.0;
     const gridF = isGridConnected ? rawGridF : 0.0;
 
@@ -297,8 +302,6 @@ class PowerFlowCard extends HTMLElement {
       this.setDisplay('line-grid-l3', false);
       gridElements.push(this.getEl('line-grid-1p'));
     }
-
-    gridElements.push(this.getEl('lbl-grid-mode'));
 
     this.setDisplay('line-grid-v', showGridV);
     if (showGridV) gridElements.push(this.getEl('line-grid-v'));
@@ -370,8 +373,8 @@ class PowerFlowCard extends HTMLElement {
     const epsV = hasEpsV ? this.getState(ent.eps_voltage, 0.0) : 0;
     const epsF = hasEpsF ? this.getState(ent.eps_frequency, 0.0) : 0;
 
-    const showEpsV = hasEpsV && epsV > 0;
-    const showEpsF = hasEpsF && epsF > 0;
+    const showEpsV = !isThreePhase && hasEpsV && epsV > 0;
+    const showEpsF = !isThreePhase && hasEpsF && epsF > 0;
 
     if (showEpsV) this.setText('txt-eps-v', epsV.toFixed(1));
     if (showEpsF) this.setText('txt-eps-f', epsF.toFixed(2));
@@ -557,7 +560,7 @@ class PowerFlowCard extends HTMLElement {
       if (!isGridConnected) {
         showPvFlow = hasEpsPower || isBatActive;
       } else {
-        showPvFlow = isCharging || isBatActive || hasLoadPower || hasEpsPower || isExporting;
+        showPvFlow = isBatActive || hasLoadPower || hasEpsPower || isExporting;
       }
     }
 
@@ -575,14 +578,37 @@ class PowerFlowCard extends HTMLElement {
 
     this.setFlowVisible('flow-pv', showPvFlow);
     this.setFlowVisible('flow-ac-pv', showAcPvFlow);
-    
-    // Luồng Pin 1
+
+    // --- CẤU HÌNH LUỒNG PIN 1 VÀ PIN 2 ---
+    // Nhánh cục bộ Pin 1
     this.setFlowVisible('flow-bat-charge', isCharging);
     this.setFlowVisible('flow-bat-discharge', isDischarging);
 
-    // Luồng Pin 2
+    // Nhánh cục bộ Pin 2 (Bao gồm cả đoạn đứng nối lên Trunk)
     this.setFlowVisible('flow-bat2-charge', showBat2 && isCharging2);
     this.setFlowVisible('flow-bat2-discharge', showBat2 && isDischarging2);
+
+    // Tính toán ưu tiên luồng Trunk nối tới Biến Tần dựa theo số Watt lớn hơn (|W|)
+    const p1W = (isCharging || isDischarging) ? Math.abs(batP) : 0;
+    const p2W = (showBat2 && (isCharging2 || isDischarging2)) ? Math.abs(bat2P) : 0;
+
+    let trunkDischarge = false;
+    let trunkCharge = false;
+
+    if (p1W > 0 || p2W > 0) {
+      if (p2W > p1W) {
+        // Pin 2 có công suất W lớn hơn -> ưu tiên hướng Pin 2
+        trunkDischarge = isDischarging2;
+        trunkCharge = isCharging2;
+      } else {
+        // Pin 1 có công suất W lớn hơn hoặc bằng -> ưu tiên hướng Pin 1
+        trunkDischarge = isDischarging;
+        trunkCharge = isCharging;
+      }
+    }
+
+    this.setFlowVisible('flow-bat-trunk-discharge', trunkDischarge);
+    this.setFlowVisible('flow-bat-trunk-charge', trunkCharge);
 
     const showLoadFlow = isGridConnected && hasLoadPower;
     this.setFlowVisible('flow-bus-to-load', showLoadFlow);
@@ -854,50 +880,56 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-d" x="166" y="160" class="chv-block" style="animation-delay: 0.70s;" />
               </g>
 
-              <!-- Luồng Tải -->
+              <!-- Luồng Tải (Bus -> Tiêu thụ) -->
               <g id="flow-bus-to-load">
-                <use href="#chv-block-d" x="275" y="114" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-d" x="275" y="128" class="chv-block" style="animation-delay: 0.25s;" />
-                <use href="#chv-block-d" x="275" y="142" class="chv-block" style="animation-delay: 0.50s;" />
-                <use href="#chv-block-d" x="275" y="156" class="chv-block" style="animation-delay: 0.75s;" />
+                <use href="#chv-block-d" x="275" y="109" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-d" x="275" y="122" class="chv-block" style="animation-delay: 0.20s;" />
+                <use href="#chv-block-d" x="275" y="135" class="chv-block" style="animation-delay: 0.40s;" />
+                <use href="#chv-block-d" x="275" y="148" class="chv-block" style="animation-delay: 0.60s;" />
+                <use href="#chv-block-d" x="275" y="161" class="chv-block" style="animation-delay: 0.80s;" />
               </g>
 
-              <!-- Luồng Pin 1 Xả (4 mũi tên) -->
+              <!-- Nhánh Pin 1 Xả (Cục bộ - 2 mũi tên tại x="82", x="96") -->
               <g id="flow-bat-discharge">
-                <use href="#chv-block-r" x="80"  y="98" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-r" x="94"  y="98" class="chv-block" style="animation-delay: 0.25s;" />
-                <use href="#chv-block-r" x="108" y="98" class="chv-block" style="animation-delay: 0.50s;" />
-                <use href="#chv-block-r" x="122" y="98" class="chv-block" style="animation-delay: 0.75s;" />
+                <use href="#chv-block-r" x="82" y="98" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-r" x="96" y="98" class="chv-block" style="animation-delay: 0.25s;" />
               </g>
 
-              <!-- Luồng Pin 1 Sạc (4 mũi tên) -->
+              <!-- Nhánh Pin 1 Sạc (Cục bộ - 2 mũi tên tại x="96", x="82") -->
               <g id="flow-bat-charge">
-                <use href="#chv-block-l" x="122" y="98" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-l" x="108" y="98" class="chv-block" style="animation-delay: 0.25s;" />
-                <use href="#chv-block-l" x="94"  y="98" class="chv-block" style="animation-delay: 0.50s;" />
-                <use href="#chv-block-l" x="80"  y="98" class="chv-block" style="animation-delay: 0.75s;" />
+                <use href="#chv-block-l" x="96" y="98" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-l" x="82" y="98" class="chv-block" style="animation-delay: 0.25s;" />
               </g>
 
-              <!-- Luồng Pin 2 Xả -->
+              <!-- Nhánh Pin 2 Xả (2 mũi tên ngang x="82", x="96" và luồng đứng dịch về x="106") -->
               <g id="flow-bat2-discharge">
-                <use href="#chv-block-r" x="80"  y="174" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-r" x="94"  y="174" class="chv-block" style="animation-delay: 0.18s;" />
-                <use href="#chv-block-u" x="108" y="162" class="chv-block" style="animation-delay: 0.36s;" />
-                <use href="#chv-block-u" x="108" y="150" class="chv-block" style="animation-delay: 0.54s;" />
-                <use href="#chv-block-u" x="108" y="138" class="chv-block" style="animation-delay: 0.72s;" />
-                <use href="#chv-block-u" x="108" y="126" class="chv-block" style="animation-delay: 0.90s;" />
-                <use href="#chv-block-u" x="108" y="114" class="chv-block" style="animation-delay: 1.08s;" />
+                <use href="#chv-block-r" x="82" y="174" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-r" x="96" y="174" class="chv-block" style="animation-delay: 0.15s;" />
+                <use href="#chv-block-u" x="106" y="159" class="chv-block" style="animation-delay: 0.30s;" />
+                <use href="#chv-block-u" x="106" y="143" class="chv-block" style="animation-delay: 0.45s;" />
+                <use href="#chv-block-u" x="106" y="127" class="chv-block" style="animation-delay: 0.60s;" />
+                <use href="#chv-block-u" x="106" y="111" class="chv-block" style="animation-delay: 0.75s;" />
               </g>
 
-              <!-- Luồng Pin 2 Sạc -->
+              <!-- Nhánh Pin 2 Sạc (Luồng đứng xuống x="106" và 2 mũi tên ngang về Pin x="96", x="82") -->
               <g id="flow-bat2-charge">
-                <use href="#chv-block-d" x="108" y="114" class="chv-block" style="animation-delay: 0.00s;" />
-                <use href="#chv-block-d" x="108" y="126" class="chv-block" style="animation-delay: 0.18s;" />
-                <use href="#chv-block-d" x="108" y="138" class="chv-block" style="animation-delay: 0.36s;" />
-                <use href="#chv-block-d" x="108" y="150" class="chv-block" style="animation-delay: 0.54s;" />
-                <use href="#chv-block-d" x="108" y="162" class="chv-block" style="animation-delay: 0.72s;" />
-                <use href="#chv-block-l" x="94"  y="174" class="chv-block" style="animation-delay: 0.90s;" />
-                <use href="#chv-block-l" x="80"  y="174" class="chv-block" style="animation-delay: 1.08s;" />
+                <use href="#chv-block-d" x="106" y="111" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-d" x="106" y="127" class="chv-block" style="animation-delay: 0.15s;" />
+                <use href="#chv-block-d" x="106" y="143" class="chv-block" style="animation-delay: 0.30s;" />
+                <use href="#chv-block-d" x="106" y="159" class="chv-block" style="animation-delay: 0.45s;" />
+                <use href="#chv-block-l" x="96" y="174" class="chv-block" style="animation-delay: 0.60s;" />
+                <use href="#chv-block-l" x="82" y="174" class="chv-block" style="animation-delay: 0.75s;" />
+              </g>
+
+              <!-- Đoạn chính (Trunk) Nối Nút Pin vào Biến Tần -->
+              <g id="flow-bat-trunk-discharge">
+                <use href="#chv-block-r" x="112" y="98" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-r" x="126" y="98" class="chv-block" style="animation-delay: 0.25s;" />
+              </g>
+
+              <g id="flow-bat-trunk-charge">
+                <use href="#chv-block-l" x="126" y="98" class="chv-block" style="animation-delay: 0.00s;" />
+                <use href="#chv-block-l" x="112" y="98" class="chv-block" style="animation-delay: 0.25s;" />
               </g>
 
               <!-- Luồng Inverter <-> Bus -->
@@ -930,7 +962,8 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-r" x="316" y="98" class="chv-block" style="animation-delay: 0.30s;" />
               </g>
 
-              <circle id="ac-bus-node" cx="280" cy="105" r="5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
+              <!-- Điểm tròn Bus hòa lưới -->
+              <circle id="ac-bus-node" cx="280" cy="103" r="5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5"/>
 
               <!-- Khối 1: PV DC -->
               <g id="grp-pv" transform="translate(38, -6)">
@@ -1070,7 +1103,6 @@ class PowerFlowCard extends HTMLElement {
                 <text id="line-grid-l2" x="45" y="0" style="display:none;"><tspan id="txt-grid-l2" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
                 <text id="line-grid-l3" x="45" y="0" style="display:none;"><tspan id="txt-grid-l3" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
 
-                <text id="lbl-grid-mode" x="45" y="0" class="svg-txt-sub" font-weight="bold" fill="#dc2626">Mất lưới</text>
                 <text id="line-grid-v" x="45" y="0"><tspan id="txt-grid-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="3"> V</tspan></text>
                 <text id="line-grid-f" x="45" y="0"><tspan id="txt-grid-f" class="highlight-freq">0.00</tspan><tspan class="unit-lbl" dx="3"> Hz</tspan></text>
               </g>
