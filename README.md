@@ -49,14 +49,14 @@ Vào Dashboard bất kỳ ➔ Chọn **Chỉnh sửa giao diện** (Edit Dashboa
 
 ```yaml
 type: custom:power-flow-card-inverter
-
-# --- Cấu hình tùy chọn hệ thống ---
 three_phase: false           # Đặt true nếu dùng hệ thống 3 pha
-invert_battery_power: false  # Đặt true nếu công suất Pin 1 bị ngược dấu
-invert_battery2_power: false  # Đã đổi sang true để đảo chiều công suất Pin 2
-invert_grid_power: false     # Đặt true nếu công suất lưới bị ngược dấu
 always_show_ac_pv: false     # Đặt true nếu luôn muốn hiển thị khung AC PV / Máy phát
-always_show_battery2: true  # Đã đổi sang true để luôn hiển thị khối Pin lưu trữ 2
+single_load_mode: false      # Đặt true nếu biến tần Offgrid/Hybrid dùng chung # Cảm biến công suất tải Offgrid/Ongrid
+invert_battery_power: false  # Đặt true nếu công suất Pin 1 bị ngược dấu
+always_show_battery2: true   # Đã đổi sang true để luôn hiển thị khối Pin lưu trữ 2
+invert_battery2_power: false # Đã đổi sang true để đảo chiều công suất Pin 2
+invert_grid_power: false     # Đặt true nếu công suất lưới bị ngược dấu
+
 
 entities:
   # --- Điện mặt trời (DC PV) ---
@@ -88,8 +88,8 @@ entities:
   battery2_voltage: sensor.battery2_voltage
   battery2_soc: sensor.battery2_soc
 
-  # --- Tải tiêu thụ (Load) ---
-  load_power: sensor.inverter_power
+  # --- Tải tiêu thụ (Load) ---    # Cảm biến công suất tải duy nhất
+  load_power: sensor.inverter_power        
   # Nếu dùng 3 pha cho Tải tiêu thụ:
   load_power_l1: sensor.inverter_load_power_l1
   load_power_l2: sensor.inverter_load_power_l2
@@ -104,15 +104,15 @@ entities:
   eps_power_l2: sensor.inverter_eps_power_l2
   eps_power_l3: sensor.inverter_eps_power_l3
 
-  # --- Điện lưới (Grid) ---
-  grid_power: sensor.lux_grid_flow_live
+  # --- Điện lưới (Grid) ---      # Cảm biến điện áp lưới để nhận biết mất lưới
+  grid_power: sensor.lux_grid_flow_live               
   grid_voltage: sensor.grid_voltage
   grid_frequency: sensor.grid_frequency
   # Nếu dùng 3 pha cho Lưới:
   grid_power_l1: sensor.inverter_grid_power_l1
   grid_power_l2: sensor.inverter_grid_power_l2
   grid_power_l3: sensor.inverter_grid_power_l3
-  grid_voltage_l1: sensor.inverter_grid_voltage_l1
+  grid_voltage_l1: sensor.inverter_grid_voltage_l1     
   grid_frequency_l1: sensor.inverter_grid_frequency_l1
 
   # --- Thống kê sản lượng & tiêu thụ (kWh) ---
