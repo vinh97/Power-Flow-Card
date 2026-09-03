@@ -48,7 +48,7 @@ Thẻ Lovelace tùy chỉnh hiển thị sơ đồ luồng năng lượng và th
 Vào Dashboard bất kỳ ➔ Chọn **Chỉnh sửa giao diện** (Edit Dashboard) ➔ Thêm thẻ mới dạng **Thủ công** (Manual) ➔ Dán đoạn mã cấu hình YAML sau:
 
 ```yaml
-type: custom:power-flow-card
+type: custom:power-flow-card-inverter
 
 # --- Cấu hình tùy chọn hệ thống ---
 three_phase: false           # Đặt true nếu dùng hệ thống 3 pha
