@@ -1,5 +1,5 @@
 {
-  "name": "Power Flow Card",
+  "name": "Power Flow Card Inverter",
   "render_readme": true,
-  "filename": "power-flow-card.js"
+  "filename": "power-flow-card-inverter.js"
 }
