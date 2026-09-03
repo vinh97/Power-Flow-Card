@@ -321,25 +321,58 @@ class PowerFlowCardInverter extends HTMLElement {
     this.setDisplay('line-grid-f', showGridF);
     if (showGridF) gridElements.push(this.getEl('line-grid-f'));
 
-    // Thêm khoảng cách 6px giữa phần công suất W và điện áp V/Hz (áp dụng cho cả 1 pha & 3 pha)
     this.alignTextStack(gridElements, 20, 12, 3.5, gridPowerCount - 1, 6);
 
-    // 5. Tải tiêu thụ
-    let loadP = 0;
-    if (isThreePhase) {
-      const loadL1 = Math.abs(Math.round(this.getState(ent.load_power_l1, 0)));
-      const loadL2 = Math.abs(Math.round(this.getState(ent.load_power_l2, 0)));
-      const loadL3 = Math.abs(Math.round(this.getState(ent.load_power_l3, 0)));
+    // 5. Tải tiêu thụ & 6. EPS (Đọc dữ liệu thô)
+    let loadP = 0, loadL1 = 0, loadL2 = 0, loadL3 = 0;
+    let epsP = 0, epsL1 = 0, epsL2 = 0, epsL3 = 0;
 
+    if (isThreePhase) {
+      loadL1 = Math.abs(Math.round(this.getState(ent.load_power_l1, 0)));
+      loadL2 = Math.abs(Math.round(this.getState(ent.load_power_l2, 0)));
+      loadL3 = Math.abs(Math.round(this.getState(ent.load_power_l3, 0)));
       loadP = (ent.load_power_l1 || ent.load_power_l2 || ent.load_power_l3)
         ? (loadL1 + loadL2 + loadL3)
         : Math.abs(Math.round(this.getState(ent.load_power, 0)));
 
+      epsL1 = Math.abs(Math.round(this.getState(ent.eps_power_l1, 0)));
+      epsL2 = Math.abs(Math.round(this.getState(ent.eps_power_l2, 0)));
+      epsL3 = Math.abs(Math.round(this.getState(ent.eps_power_l3, 0)));
+      epsP = (ent.eps_power_l1 || ent.eps_power_l2 || ent.eps_power_l3)
+        ? (epsL1 + epsL2 + epsL3)
+        : Math.abs(Math.round(this.getState(ent.eps_power, 0)));
+    } else {
+      loadP = Math.abs(Math.round(this.getState(ent.load_power, 0)));
+      epsP = Math.abs(Math.round(this.getState(ent.eps_power, 0)));
+    }
+
+    // --- LOGIC ĐIỀU CHUYỂN TẢI THEO TRẠNG THÁI LƯỚI (ISGRIDCONNECTED) ---
+    if (!isGridConnected) {
+      // Mất lưới: Chuyển toàn bộ load_power sang EPS, khối Tiêu thụ về 0 W
+      if (loadP > 0 || (loadL1 + loadL2 + loadL3) > 0) {
+        epsP = loadP;
+        epsL1 = loadL1;
+        epsL2 = loadL2;
+        epsL3 = loadL3;
+      }
+      loadP = 0;
+      loadL1 = 0;
+      loadL2 = 0;
+      loadL3 = 0;
+    } else {
+      // Có lưới: Giữ giá trị ở khối Tiêu thụ, khối EPS về 0 W (hiển thị Chế độ chờ)
+      epsP = 0;
+      epsL1 = 0;
+      epsL2 = 0;
+      epsL3 = 0;
+    }
+
+    // Cập nhật hiển thị giao diện Tải tiêu thụ
+    if (isThreePhase) {
       this.setPower('txt-load-l1', loadL1);
       this.setPower('txt-load-l2', loadL2);
       this.setPower('txt-load-l3', loadL3);
     } else {
-      loadP = Math.abs(Math.round(this.getState(ent.load_power, 0)));
       this.setPower('txt-load-p', loadP);
     }
 
@@ -358,25 +391,14 @@ class PowerFlowCardInverter extends HTMLElement {
       loadElements.push(this.getEl('line-load-1p'));
     }
     loadElements.push(this.getEl('lbl-load-sub'));
-
     this.alignTextStack(loadElements, 19, 12, 3.5);
 
-    // 6. EPS
-    let epsP = 0;
+    // Cập nhật hiển thị giao diện EPS
     if (isThreePhase) {
-      const epsL1 = Math.abs(Math.round(this.getState(ent.eps_power_l1, 0)));
-      const epsL2 = Math.abs(Math.round(this.getState(ent.eps_power_l2, 0)));
-      const epsL3 = Math.abs(Math.round(this.getState(ent.eps_power_l3, 0)));
-
-      epsP = (ent.eps_power_l1 || ent.eps_power_l2 || ent.eps_power_l3)
-        ? (epsL1 + epsL2 + epsL3)
-        : Math.abs(Math.round(this.getState(ent.eps_power, 0)));
-
       this.setPower('txt-eps-l1', epsL1);
       this.setPower('txt-eps-l2', epsL2);
       this.setPower('txt-eps-l3', epsL3);
     } else {
-      epsP = Math.abs(Math.round(this.getState(ent.eps_power, 0)));
       this.setPower('txt-eps-p', epsP);
     }
 
