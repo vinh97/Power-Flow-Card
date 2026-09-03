@@ -53,7 +53,7 @@ three_phase: false           # Đặt true nếu dùng hệ thống 3 pha
 always_show_ac_pv: false     # Đặt true nếu luôn muốn hiển thị khung AC PV / Máy phát
 single_load_mode: false      # Đặt true nếu biến tần Offgrid/Hybrid dùng chung # Cảm biến công suất tải Offgrid/Ongrid
 invert_battery_power: false  # Đặt true nếu công suất Pin 1 bị ngược dấu
-always_show_battery2: true   # Đã đổi sang true để luôn hiển thị khối Pin lưu trữ 2
+always_show_battery2: false   # Đã đổi sang true để luôn hiển thị khối Pin lưu trữ 2
 invert_battery2_power: false # Đã đổi sang true để đảo chiều công suất Pin 2
 invert_grid_power: false     # Đặt true nếu công suất lưới bị ngược dấu
 
