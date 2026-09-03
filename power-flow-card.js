@@ -425,7 +425,7 @@ class PowerFlowCard extends HTMLElement {
       else if (isDischarging) lblBatMode.textContent = "Đang xả";
       else {
         if (soc >= 100) lblBatMode.textContent = "Pin đầy";
-        else if (soc >= 20) lblBatMode.textContent = "Chờ sạc / xả";
+        else if (soc >= 20) lblBatMode.textContent = "Pin Chờ";
         else lblBatMode.textContent = "Pin yếu";
       }
     }
@@ -493,7 +493,7 @@ class PowerFlowCard extends HTMLElement {
         else if (isDischarging2) lblBat2Mode.textContent = "Đang xả";
         else {
           if (soc2 >= 100) lblBat2Mode.textContent = "Pin đầy";
-          else if (soc2 >= 20) lblBat2Mode.textContent = "Chờ sạc / xả";
+          else if (soc2 >= 20) lblBat2Mode.textContent = "Pin Chờ";
           else lblBat2Mode.textContent = "Pin yếu";
         }
       }
@@ -1039,7 +1039,7 @@ class PowerFlowCard extends HTMLElement {
                 <rect id="bat-fill" x="4" y="7" width="24" height="43" rx="1.5" fill="#16a34a"/>
 
                 <text id="line-bat-p" x="-8" y="0" text-anchor="end"><tspan id="txt-bat-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
-                <text id="lbl-bat-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Chờ sạc / xả</text>
+                <text id="lbl-bat-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Pin Chờ</text>
                 <text id="line-bat-v" x="-8" y="0" text-anchor="end"><tspan id="txt-bat-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="3"> V</tspan></text>
                 <text id="line-bat-soc" x="-8" y="0" text-anchor="end"><tspan id="txt-soc-val" font-size="13px" font-weight="bold" fill="#16a34a">0</tspan><tspan class="unit-lbl" dx="1" fill="#16a34a">%</tspan></text>
               </g>
@@ -1051,7 +1051,7 @@ class PowerFlowCard extends HTMLElement {
                 <rect id="bat2-fill" x="4" y="7" width="24" height="43" rx="1.5" fill="#16a34a"/>
 
                 <text id="line-bat2-p" x="-8" y="0" text-anchor="end"><tspan id="txt-bat2-p" class="svg-txt-bold">0</tspan><tspan class="unit-lbl" dx="3"> W</tspan></text>
-                <text id="lbl-bat2-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Chờ sạc / xả</text>
+                <text id="lbl-bat2-mode" x="-8" y="0" class="svg-txt-sub" text-anchor="end">Pin Chờ</text>
                 <text id="line-bat2-v" x="-8" y="0" text-anchor="end"><tspan id="txt-bat2-v" class="highlight-val">0.0</tspan><tspan class="unit-lbl" dx="3"> V</tspan></text>
                 <text id="line-bat2-soc" x="-8" y="0" text-anchor="end"><tspan id="txt-soc2-val" font-size="13px" font-weight="bold" fill="#16a34a">0</tspan><tspan class="unit-lbl" dx="1" fill="#16a34a">%</tspan></text>
               </g>
