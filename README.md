@@ -17,7 +17,7 @@ Thẻ Lovelace tùy chỉnh hiển thị sơ đồ luồng năng lượng và th
 1. Mở **HACS** trong Home Assistant.
 2. Nhấn vào biểu tượng 3 chấm ở góc trên bên phải `⋮` ➔ chọn **Custom repositories** (Kho lưu trữ tùy chỉnh).
 3. Nhập đường dẫn GitHub repository của bạn:
-   - **Repository:** `https://github.com/vinh97/Power-Flow-Card`
+   - **Repository:** `https://github.com/vinh97/Power-Flow-Card-Inverter`
    - **Type:** `Plugin`
 4. Bấm **Add** (Thêm), sau đó tìm kiếm **Power Flow Card** và bấm **Download**.
 5. Tải lại trang giao diện Home Assistant.
