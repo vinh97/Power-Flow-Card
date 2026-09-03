@@ -92,14 +92,22 @@ class PowerFlowCard extends HTMLElement {
     this.setDisplay(id, visible);
   }
 
-  alignTextStack(elements, centerY, lineHeight = 12, baselineOffset = 3.5) {
+  alignTextStack(elements, centerY, lineHeight = 12, baselineOffset = 3.5, gapIndex = -1, gapAmount = 0) {
     const visible = elements.filter(el => el && el.style.display !== 'none');
     const numLines = visible.length;
     if (numLines === 0) return;
 
-    const startY = centerY - ((numLines - 1) * lineHeight) / 2 + baselineOffset;
+    const hasGap = gapIndex >= 0 && gapIndex < numLines - 1;
+    const totalHeight = ((numLines - 1) * lineHeight) + (hasGap ? gapAmount : 0);
+    const startY = centerY - totalHeight / 2 + baselineOffset;
+
+    let currentY = startY;
     visible.forEach((el, idx) => {
-      el.setAttribute('y', startY + idx * lineHeight);
+      el.setAttribute('y', currentY);
+      currentY += lineHeight;
+      if (idx === gapIndex) {
+        currentY += gapAmount;
+      }
     });
   }
 
@@ -252,6 +260,9 @@ class PowerFlowCard extends HTMLElement {
     let rawGridV = 0.0;
     let rawGridF = 0.0;
 
+    const gridElements = [];
+    let gridPowerCount = 0;
+
     if (isThreePhase) {
       const gridL1 = Math.round(this.getState(ent.grid_power_l1, 0));
       const gridL2 = Math.round(this.getState(ent.grid_power_l2, 0));
@@ -288,19 +299,20 @@ class PowerFlowCard extends HTMLElement {
     const showGridV = isGridConnected && gridV > 0;
     const showGridF = isGridConnected && gridF > 0;
 
-    const gridElements = [];
     if (isThreePhase) {
       this.setDisplay('line-grid-1p', false);
       this.setDisplay('line-grid-l1', true);
       this.setDisplay('line-grid-l2', true);
       this.setDisplay('line-grid-l3', true);
       gridElements.push(this.getEl('line-grid-l1'), this.getEl('line-grid-l2'), this.getEl('line-grid-l3'));
+      gridPowerCount = 3;
     } else {
       this.setDisplay('line-grid-1p', true);
       this.setDisplay('line-grid-l1', false);
       this.setDisplay('line-grid-l2', false);
       this.setDisplay('line-grid-l3', false);
       gridElements.push(this.getEl('line-grid-1p'));
+      gridPowerCount = 1;
     }
 
     this.setDisplay('line-grid-v', showGridV);
@@ -309,7 +321,8 @@ class PowerFlowCard extends HTMLElement {
     this.setDisplay('line-grid-f', showGridF);
     if (showGridF) gridElements.push(this.getEl('line-grid-f'));
 
-    this.alignTextStack(gridElements, 20, 12, 3.5);
+    // Thêm khoảng cách 6px giữa phần công suất W và điện áp V/Hz (áp dụng cho cả 1 pha & 3 pha)
+    this.alignTextStack(gridElements, 20, 12, 3.5, gridPowerCount - 1, 6);
 
     // 5. Tải tiêu thụ
     let loadP = 0;
@@ -580,15 +593,12 @@ class PowerFlowCard extends HTMLElement {
     this.setFlowVisible('flow-ac-pv', showAcPvFlow);
 
     // --- CẤU HÌNH LUỒNG PIN 1 VÀ PIN 2 ---
-    // Nhánh cục bộ Pin 1
     this.setFlowVisible('flow-bat-charge', isCharging);
     this.setFlowVisible('flow-bat-discharge', isDischarging);
 
-    // Nhánh cục bộ Pin 2 (Bao gồm cả đoạn đứng nối lên Trunk)
     this.setFlowVisible('flow-bat2-charge', showBat2 && isCharging2);
     this.setFlowVisible('flow-bat2-discharge', showBat2 && isDischarging2);
 
-    // Tính toán ưu tiên luồng Trunk nối tới Biến Tần dựa theo số Watt lớn hơn (|W|)
     const p1W = (isCharging || isDischarging) ? Math.abs(batP) : 0;
     const p2W = (showBat2 && (isCharging2 || isDischarging2)) ? Math.abs(bat2P) : 0;
 
@@ -597,11 +607,9 @@ class PowerFlowCard extends HTMLElement {
 
     if (p1W > 0 || p2W > 0) {
       if (p2W > p1W) {
-        // Pin 2 có công suất W lớn hơn -> ưu tiên hướng Pin 2
         trunkDischarge = isDischarging2;
         trunkCharge = isCharging2;
       } else {
-        // Pin 1 có công suất W lớn hơn hoặc bằng -> ưu tiên hướng Pin 1
         trunkDischarge = isDischarging;
         trunkCharge = isCharging;
       }
@@ -889,19 +897,19 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-d" x="275" y="161" class="chv-block" style="animation-delay: 0.80s;" />
               </g>
 
-              <!-- Nhánh Pin 1 Xả (Cục bộ - 2 mũi tên tại x="82", x="96") -->
+              <!-- Nhánh Pin 1 Xả -->
               <g id="flow-bat-discharge">
                 <use href="#chv-block-r" x="82" y="98" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-r" x="96" y="98" class="chv-block" style="animation-delay: 0.25s;" />
               </g>
 
-              <!-- Nhánh Pin 1 Sạc (Cục bộ - 2 mũi tên tại x="96", x="82") -->
+              <!-- Nhánh Pin 1 Sạc -->
               <g id="flow-bat-charge">
                 <use href="#chv-block-l" x="96" y="98" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-l" x="82" y="98" class="chv-block" style="animation-delay: 0.25s;" />
               </g>
 
-              <!-- Nhánh Pin 2 Xả (2 mũi tên ngang x="82", x="96" và luồng đứng dịch về x="106") -->
+              <!-- Nhánh Pin 2 Xả -->
               <g id="flow-bat2-discharge">
                 <use href="#chv-block-r" x="82" y="174" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-r" x="96" y="174" class="chv-block" style="animation-delay: 0.15s;" />
@@ -911,7 +919,7 @@ class PowerFlowCard extends HTMLElement {
                 <use href="#chv-block-u" x="106" y="111" class="chv-block" style="animation-delay: 0.75s;" />
               </g>
 
-              <!-- Nhánh Pin 2 Sạc (Luồng đứng xuống x="106" và 2 mũi tên ngang về Pin x="96", x="82") -->
+              <!-- Nhánh Pin 2 Sạc -->
               <g id="flow-bat2-charge">
                 <use href="#chv-block-d" x="106" y="111" class="chv-block" style="animation-delay: 0.00s;" />
                 <use href="#chv-block-d" x="106" y="127" class="chv-block" style="animation-delay: 0.15s;" />
